@@ -6,6 +6,12 @@ description: Execute Phases 4, 5, 6, and 7 of the Agile SDLC (Implementation, QA
 
 Guide execution from code implementation (`4 Construcción`) through QA (`5 Entrega`), live operations (`6 Operación`), and closure (`7 Cierre`) for whichever project and local repository are currently active.
 
+## Mandatory Pre-Implementation Gate (Stop Before Writing Any Code!)
+
+Before creating directories, boilerplate, or source code files:
+1. **Verify Phase 3 (`sdlc-architecture-design`) Completion:** Check Notion (`PoCs y decisiones` for an approved Stack ADR) and the local repository (`docs/adr/` or existing project files).
+2. **If no Stack ADR / language decision exists yet:** **STOP immediately.** Do NOT guess a language (Python, Go, Java, .NET, JS/TS) and do NOT scaffold files. Instead, trigger **`sdlc-architecture-design`** first (running the Greenfield vs. `v1` diagnostic questions, evaluating Stack vs. Free-Tier/Hosting limits, and getting explicit user approval on the language and 5-level evolutionary plan).
+
 ## Dynamic Project Scoping (consult `NOTION_SCHEMA.md`)
 
 1. Identify the active `Proyecto` (`page_id`) in Notion and the active local Git repository directory.
@@ -13,20 +19,21 @@ Guide execution from code implementation (`4 Construcción`) through QA (`5 Entr
 
 ## Living Documentation Split (Git vs. Notion)
 
-- **Active Code Repository:** `README.md`, `CHANGELOG.md`, API contracts, runbooks, environment setup, and automated unit/integration tests covering `BR-XX`.
+- **Active Code Repository:** `README.md`, `CHANGELOG.md`, `docs/adr/`, API contracts, runbooks, environment setup, and automated unit/integration tests covering `BR-XX`.
 - **Notion Workspace:** `Iteraciones` (sprint scope), `Historias y tareas` status updates, `Casos de prueba` (`RF → HU → BR → Prueba`), and `Documentos` (Sprint Review, Operational Checklist, Lessons Learned).
 
 ## Workflow
 
-### Step 1: Sprint / Increment Scoping (`Iteraciones`)
+### Step 1: Verify Architecture Gate & Sprint Scoping (`Iteraciones`)
+- Confirm the approved tech stack and current Evolutionary Level (`Level 1: Pure Core` → `Level 5: Frontend`).
 - Query `Iteraciones` (`ds: 41ae618d-5d53-812e-ae57-000bf3a3593a`) for the active `Proyecto` and link selected `HU-NN` / `TEC-NN` items.
 
 ### Step 2: Test-First Verification (`BR-XX` & `Casos de prueba`)
-- Write isolated unit tests for business rules (`BR-XX`) in the repository first.
+- Write isolated unit tests for business rules (`BR-XX`) in the repository first, using only the approved language and pure domain constructs (zero web frameworks or DB drivers in Level 1).
 - Generate structured **`Casos de prueba`** (`db: 41ae618d-5d53-81c1-92e2-fd49db796abf`) in Notion linked strictly to `Proyecto`, `Historia`, and `Regla` (`BR-XX`) — never directly to `Requisito`.
 
 ### Step 3: Implementation & Operational Readiness (`SOP-NN`)
-- Implement modular code matching Phase 3 architecture and verify operational/deployment runbooks (`SOP-NN`) when moving to `6 Operación`.
+- Implement modular code matching Phase 3 hexagonal boundaries and verify operational/deployment runbooks (`SOP-NN`) when moving to `6 Operación`.
 
 ### Step 4: Sprint Review, Retrospective & Next Loop
 - Update item statuses in Notion, log Sprint Review / Lessons Learned in **`Documentos`**, and identify the next backlog slice to loop back into Phase 1/2 or Phase 3.
@@ -34,4 +41,5 @@ Guide execution from code implementation (`4 Construcción`) through QA (`5 Entr
 ## Gotchas
 
 - Always conduct the conversation and write all Notion records in Spanish, unless explicitly requested otherwise.
+- Never write or scaffold code before Phase 3 has locked the tech stack and infrastructure constraints with the user.
 - Never link `Casos de prueba` directly to `Requisitos`; always close the chain via `Historia` and `Regla`.
