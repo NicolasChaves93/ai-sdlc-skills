@@ -26,5 +26,5 @@
 - **Trazabilidad:** `Proyecto` → `Requisito (RF/RNF)` → `Épica` → `Historia (HU)` ↔ `Regla (BR)` → `Caso de prueba`.
 - **Prefijos de Historias y tareas:** `HU-NN` (Historia funcional), `TEC-NN` (Tarea técnica / arquitectura / ADR), `SOP-NN` (Operación y soporte).
 - **Numeración por proyecto:** Todo proyecto nuevo inicia en `RF-01`, `RNF-01`, `BR-01` y `01` (`HU-01` / `TEC-01`). En proyectos existentes, consulta primero los registros del proyecto para continuar desde el máximo vigente.
-- **Módulos dinámicos:** Cada proyecto define sus propios módulos/dominios funcionales. Antes de etiquetar `Módulo`, inspecciona el esquema actual de la base o consulta al usuario qué módulos aplican al proyecto activo.
+- **Módulos dinámicos:** Cada proyecto define sus propios módulos o dominios funcionales. Antes de etiquetar `Módulo`, inspecciona el esquema actual de la base o consulta al usuario qué módulos aplican al proyecto activo.
 - **Plantillas de Documentos formales:** `PT-PP` (Planteamiento del problema), `PT-ERS` (Requisitos), `PT-ECU` (Casos de uso), `PT-IGS` (Informe general del sistema), `PT-PS` (Prototipado).
