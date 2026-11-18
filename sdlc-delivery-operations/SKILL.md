@@ -43,3 +43,10 @@ Before creating directories, boilerplate, or source code files:
 - Always conduct the conversation and write all Notion records in Spanish, unless explicitly requested otherwise.
 - Never write or scaffold code before Phase 3 has locked the tech stack and infrastructure constraints with the user.
 - Never link `Casos de prueba` directly to `Requisitos`; always close the chain via `Historia` and `Regla`.
+
+## Testing Pyramid & Tooling by Evolutionary Stage
+
+- **Unit Tests (Stage 1+):** Fast in-memory tests (`pytest` / `go test` / `JUnit`) validating pure business rules (`BR-XX`) with zero I/O.
+- **API Functional & Exploratory Tests (Stage 2+ — Postman Desktop & CLI):** Use Postman for interactive endpoint exploration during development, functional contract assertions (`pm.test`), regression runs via `postman collection run`, and shareable API documentation (`postman/`).
+- **Persistence Integration Tests (Stages 3–4):** Automated repository/database tests verifying SQLite and PostgreSQL transactions, constraints, and connection pooling.
+- **Load & Concurrency Tests (Stage 4 — `k6`):** Store `k6` scripts in `k6/` to validate `RNF` concurrency thresholds (e.g., burst traffic, p95 latency, WebSocket/HTTP throughput) against staging/production infrastructure limits.
