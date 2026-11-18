@@ -22,6 +22,10 @@ Never jump straight into full specifications or code when an idea is still open-
 
 ## Workflow
 
+### Step 0: Check Existing Context First (Notion / Local Docs)
+
+Before asking initial questions, check if Notion MCP is connected or local markdown files exist. If the user already documented a partial idea, project hub, or initial notes in Notion, read them first, briefly summarize the baseline understood, and target your 2-3 Socratic questions strictly at gaps, assumptions, or unvalidated risks.
+
 ### Step 1: Socratic Exploration (Zero Assumptions)
 
 Ask 2 to 3 focused questions to challenge assumptions and narrow down the problem space. Avoid overwhelming the user with long questionnaires; iterate in short conversational turns until the core concept is clear.
@@ -45,7 +49,7 @@ If an idea carries high uncertainty (technical feasibility, user adoption, or op
 ### Step 4: Hand-Off to Phase 1 and Notion Documentation
 
 Once the user selects an approach or validates the PoC:
-1. Generate the **Validated Concept Brief** formatted cleanly to paste or sync directly into **Notion (`01. Fase 0: Visión, Ideación y PoCs`)** via Notion MCP if connected.
+1. Generate the **Validated Concept Brief** and write/sync it directly into **Notion (`01. Fase 0: Visión, Ideación y PoCs`)** via Notion MCP if connected, or output it cleanly formatted.
 2. Prompt the user to transition into **Phase 1 & 2 (`sdlc-discovery-analysis`)** to formalize user stories, business rules (`BR-XX`), and BPMN flows.
 
 ## Gotchas
@@ -53,3 +57,4 @@ Once the user selects an approach or validates the PoC:
 - Always conduct the conversation, ask questions, and write all generated deliverables in Spanish, unless the user explicitly requests English.
 - Do not write production architecture, database schemas, or formal Gherkin acceptance criteria in Phase 0; keep the focus on exploring *what* is worth building and *why*.
 - Never assume the user wants the most complex solution; always anchor options with a lean baseline first.
+- Keep questioning iterative (2-3 questions per turn) rather than dumping a 15-question form.
