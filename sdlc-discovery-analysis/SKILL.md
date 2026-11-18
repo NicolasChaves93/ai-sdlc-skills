@@ -1,6 +1,6 @@
 ---
 name: sdlc-discovery-analysis
-description: Execute Phases 1 and 2 of the Agile SDLC (Requirements Engineering, Business Rules, BPMN/UML Modeling, Epics, User Stories with Gherkin/Fibonacci, and Test Case Traceability) dynamically for any project in Notion. Use when transitioning from Phase 0 to formal analysis, defining a new project or module increment, or generating structured backlog items in Notion.
+description: Execute Phases 1 and 2 of the Agile SDLC (Requirements Engineering, Business Rules, BPMN As-Is/To-Be Bottleneck Modeling, Epics, User Stories with Gherkin/Fibonacci, and Test Case Traceability) dynamically for any project in Notion. Use when transitioning from Phase 0 to formal analysis, defining a new project or module increment, or generating structured backlog items in Notion.
 ---
 # SDLC Phases 1 & 2 - Discovery, Requirements Analysis, and Backlog Structuring (Multi-Project)
 
@@ -29,22 +29,19 @@ Consult `NOTION_SCHEMA.md` for global database IDs, then **always scope to the a
 ### Step 1: Audit Active Project & Phase Gate
 - Summarize existing artifacts for the active project and confirm whether the project should be at `1 Inicio` (`PT-PP`) or `2 Análisis` (`PT-ERS`, `RF`/`RNF`, `BR`, `Épicas`/`Historias`).
 
-### Step 2: Formalize Requirements (`RF-NN` / `RNF-NN`) & Business Rules (`BR-NN`)
-- **Functional Requirements (`RF-NN`):** System capabilities tagged with `Módulo` and `MoSCoW` priority.
+### Step 2: Process Optimization Modeling (`BPMN As-Is → Bottlenecks → BPMN To-Be`)
+- Before finalizing requirements, map the **current operational process (`As-Is`)** in Mermaid (`flowchart TD` with swimlanes/roles) to expose manual friction, delays, and operational bottlenecks.
+- Identify specific **bottlenecks & improvement opportunities**, then design the **improved target process (`To-Be`)** showing how the software eliminates or automates those bottlenecks.
+- Store these diagrams in **`Documentos`** (`PT-ERS` / `PT-ECU`) linked to the active `Proyecto`.
+
+### Step 3: Formalize Requirements (`RF-NN` / `RNF-NN`) & Business Rules (`BR-NN`)
+- **Functional Requirements (`RF-NN`):** System capabilities derived from the `To-Be` flow, tagged with `Módulo` and `MoSCoW` priority.
 - **Non-Functional Requirements (`RNF-NN`):** Measurable thresholds (concurrency, latency, availability, security/compliance).
 - **Business Rules (`BR-NN`):** Domain invariants, calculations, and state rules (with DMN-style decision tables for multi-condition logic).
 
-### Step 3: Conceptual Modeling (Mermaid)
-- Generate technology-agnostic Mermaid diagrams for **`Documentos`** (`PT-ERS` / `PT-ECU`):
-  - **Process Flow (BPMN-style `flowchart TD`)** across operational roles.
-  - **Conceptual Domain Model (`erDiagram`)** without physical SQL types.
-
-### Step 4: Decompose into Epics, User Stories (`HU`), and Test Cases
-For each `Épica` (3–8 stories), draft `Historias` with:
-- **Narrative:** `Como [rol], quiero [acción], para [beneficio].`
-- **Metadata:** `Módulo`, `Prioridad (MoSCoW)`, `Puntos (Fibonacci)`, `Valor de negocio`.
-- **Acceptance Criteria (Gherkin):** `Dado / Cuando / Entonces` + Definition of Done (DoD).
-- **Test Cases (`Casos de prueba`):** `Dado / Cuando / Entonces` linked to `Proyecto`, `Historia`, and `Regla`.
+### Step 4: Conceptual Domain Model & Backlog Decomposition
+- Generate a conceptual **`erDiagram`** (without physical SQL types) for **`Documentos`**.
+- Decompose into `Épicas` (3–8 stories each), `Historias` (`Como... quiero... para...`, `Módulo`, `MoSCoW`, `Fibonacci`, `Gherkin` + `DoD`), and `Casos de prueba` linked to `Proyecto`, `Historia`, and `Regla`.
 
 ### Step 5: Confirm Before Writing to Notion
 Present a summary table of proposed records and write to Notion only after user approval.
