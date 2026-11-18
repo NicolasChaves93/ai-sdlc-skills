@@ -28,3 +28,8 @@
 - **Numeración por proyecto:** Todo proyecto nuevo inicia en `RF-01`, `RNF-01`, `BR-01` y `01` (`HU-01` / `TEC-01`). En proyectos existentes, consulta primero los registros del proyecto para continuar desde el máximo vigente.
 - **Módulos dinámicos:** Cada proyecto define sus propios módulos o dominios funcionales. Antes de etiquetar `Módulo`, inspecciona el esquema actual de la base o consulta al usuario qué módulos aplican al proyecto activo.
 - **Plantillas de Documentos formales:** `PT-PP` (Planteamiento del problema), `PT-ERS` (Requisitos), `PT-ECU` (Casos de uso), `PT-IGS` (Informe general del sistema), `PT-PS` (Prototipado).
+
+## 3. Frontera de Documentación: Notion vs. Repositorio Git
+
+- **Notion (Hub Central de Producto, Gestión y Trazabilidad):** `Proyectos activos`, `Documentos` (`PT-PP`, `PT-ERS`, `PT-ECU`, `PT-IGS`, Reviews/Retrospectivas), `PoCs y decisiones` (ADRs), `Requisitos`, `Reglas de negocio`, `Épicas`, `Historias y tareas`, `Iteraciones` y `Casos de prueba`.
+- **Repositorio Git (Ingeniería Viva):** Código fuente hexagonal, tests automatizados de `BR-XX`, `README.md`, `CHANGELOG.md`, contratos OpenAPI/WebSocket, migraciones SQL, archivos Docker y *runbooks* operativos (`docs/`).

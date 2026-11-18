@@ -1,10 +1,10 @@
 ---
 name: sdlc-discovery-analysis
-description: Execute Phases 1 and 2 of the Agile SDLC (Requirements Engineering, Business Rules, BPMN As-Is/To-Be Bottleneck Modeling, Epics, User Stories with Gherkin/Fibonacci, and Test Case Traceability) dynamically for any project in Notion. Use when transitioning from Phase 0 to formal analysis, defining a new project or module increment, or generating structured backlog items in Notion.
+description: Execute Phases 1 and 2 of the Agile SDLC (Requirements Engineering, Business Rules, BPMN As-Is/To-Be Bottleneck Modeling, UML Use Cases, State Machines, Conceptual ER Models, Epics, User Stories with Gherkin/Fibonacci, and Test Case Traceability) dynamically for any project in Notion. Use when transitioning from Phase 0 to formal analysis, defining a new project or module increment, or generating structured backlog items in Notion.
 ---
 # SDLC Phases 1 & 2 - Discovery, Requirements Analysis, and Backlog Structuring (Multi-Project)
 
-Transform validated concepts into structured, traceable engineering artifacts stored in Notion (`Documentos`, `Requisitos`, `Reglas de negocio`, `Épicas`, `Historias y tareas`, and `Casos de prueba`), dynamically scoped to whichever project is active.
+Transform validated concepts into structured, traceable, technology-agnostic engineering artifacts stored in Notion (`Documentos`, `Requisitos`, `Reglas de negocio`, `Épicas`, `Historias y tareas`, and `Casos de prueba`), dynamically scoped to whichever project is active.
 
 ## Dynamic Project Discovery (Mandatory First Step)
 
@@ -22,26 +22,29 @@ Consult `NOTION_SCHEMA.md` for global database IDs, then **always scope to the a
    - Link every `Caso de prueba` to `Proyecto`, `Historia`, and `Regla` (never directly to `Requisito`).
 2. **Item Prefixes:** Use `HU-NN` for user stories, `TEC-NN` for technical/architecture/ADR tasks, and `SOP-NN` for live operations/support tasks.
 3. **Epic Sizing:** Group 3 to 8 related `Historias` per `Épica`.
-4. **Tech-Stack Agnostic:** Keep requirements, business rules, and conceptual diagrams focused on business behavior and domain entities, deferring stack choices to Phase 3 (`sdlc-architecture-design`).
+4. **100% Tech-Stack Agnostic:** Keep all Phase 1–2 diagrams, requirements, business rules, and conceptual models completely free of programming languages, frameworks, HTTP endpoints, or SQL data types so non-technical stakeholders understand them and they survive stack changes.
 
 ## Workflow
 
 ### Step 1: Audit Active Project & Phase Gate
-- Summarize existing artifacts for the active project and confirm whether the project should be at `1 Inicio` (`PT-PP`) or `2 Análisis` (`PT-ERS`, `RF`/`RNF`, `BR`, `Épicas`/`Historias`).
+- Summarize existing artifacts for the active project and confirm whether the project should be at `1 Inicio` (`PT-PP`) or `2 Análisis` (`PT-ERS`, `PT-ECU`, `RF`/`RNF`, `BR`, `Épicas`/`Historias`).
 
 ### Step 2: Process Optimization Modeling (`BPMN As-Is → Bottlenecks → BPMN To-Be`)
-- Before finalizing requirements, map the **current operational process (`As-Is`)** in Mermaid (`flowchart TD` with swimlanes/roles) to expose manual friction, delays, and operational bottlenecks.
+- Map the **current operational process (`As-Is`)** in Mermaid (`flowchart TD` with role swimlanes) to expose manual friction, delays, and operational bottlenecks.
 - Identify specific **bottlenecks & improvement opportunities**, then design the **improved target process (`To-Be`)** showing how the software eliminates or automates those bottlenecks.
-- Store these diagrams in **`Documentos`** (`PT-ERS` / `PT-ECU`) linked to the active `Proyecto`.
 
-### Step 3: Formalize Requirements (`RF-NN` / `RNF-NN`) & Business Rules (`BR-NN`)
+### Step 3: Formalize Requirements (`RF-NN` / `RNF-NN`) & Pure Business Rules (`BR-NN`)
 - **Functional Requirements (`RF-NN`):** System capabilities derived from the `To-Be` flow, tagged with `Módulo` and `MoSCoW` priority.
 - **Non-Functional Requirements (`RNF-NN`):** Measurable thresholds (concurrency, latency, availability, security/compliance).
-- **Business Rules (`BR-NN`):** Domain invariants, calculations, and state rules (with DMN-style decision tables for multi-condition logic).
+- **Business Rules (`BR-NN`):** Domain invariants, calculations, and transition rules (with DMN-style decision tables for multi-condition logic).
 
-### Step 4: Conceptual Domain Model & Backlog Decomposition
-- Generate a conceptual **`erDiagram`** (without physical SQL types) for **`Documentos`**.
-- Decompose into `Épicas` (3–8 stories each), `Historias` (`Como... quiero... para...`, `Módulo`, `MoSCoW`, `Fibonacci`, `Gherkin` + `DoD`), and `Casos de prueba` linked to `Proyecto`, `Historia`, and `Regla`.
+### Step 4: Pure Business Diagrams (Mermaid) & Backlog Decomposition
+Produce technology-agnostic diagrams for **`Documentos`** (`PT-ERS` / `PT-ECU`):
+1. **Use Case Diagram (`flowchart LR` / UML style):** Actors (e.g., Jugador, Administrador, Sistema) and business actions without UI screens or API endpoints.
+2. **State Machine Diagram (`stateDiagram-v2`):** Lifecycle states of core entities (e.g., `CREADA → EN_ESPERA → EN_CURSO → PAUSADA → FINALIZADA`) and the `BR-XX` guard rules governing each transition.
+3. **Conceptual Domain Model (`erDiagram`):** Business entities and relationships without physical SQL types (`VARCHAR`, `BIGINT`, indexes).
+
+Then decompose into `Épicas` (3–8 stories each), `Historias` (`Como... quiero... para...`, `Módulo`, `MoSCoW`, `Fibonacci`, `Gherkin` + `DoD`), and `Casos de prueba` linked to `Proyecto`, `Historia`, and `Regla`.
 
 ### Step 5: Confirm Before Writing to Notion
 Present a summary table of proposed records and write to Notion only after user approval.
@@ -49,4 +52,4 @@ Present a summary table of proposed records and write to Notion only after user 
 ## Gotchas
 
 - Always conduct the conversation and write all Notion records in Spanish, unless explicitly requested otherwise.
-- Never leak module names or numbering sequences from one project into another.
+- Never include SQL types, frameworks, or infrastructure details in Phase 1–2 diagrams; defer physical schemas and C4 diagrams to `sdlc-architecture-design`.

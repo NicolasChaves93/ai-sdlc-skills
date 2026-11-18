@@ -74,7 +74,7 @@ Structure implementation from simplest core to production scale so every level p
 Once approved, generate:
 - **ADRs** for **`PoCs y decisiones`** (`db: 41ae618d-5d53-815d-9fb6-d48297f1dc72`) documenting why the architecture was evolved or replaced, hosting trade-offs, and persistence stages.
 - **Mermaid Diagrams** for **`Documentos`** (`Fase = 3 Diseño`, template `PT-IGS`):
-  - Hexagonal & Infrastructure Deployment Architecture (`flowchart TD`)
+  - C4 Architecture Diagrams: Context, Containers, and Hexagonal Components (`flowchart TD`)
   - Physical Data Model (`erDiagram` with PKs, FKs, indexes)
   - Critical Real-Time Flows (`sequenceDiagram`)
 - **Sequential `TEC-NN` tasks** in **`Historias y tareas`** (`db: 41ae618d-5d53-8184-be52-f537089e5943`).
