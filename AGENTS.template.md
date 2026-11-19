@@ -10,7 +10,12 @@ Este proyecto sigue una fábrica de software evolutiva en 7 fases con separació
 - **Fase 0 (Ideación y Viabilidad):** `sdlc-ideation-brainstorming`
 - **Fases 1–2 (Negocio Puro: BPMN, Simulador HTML, DMN, UML, Historias):** `sdlc-discovery-analysis`
 - **Fase 3 (Diseño Técnico: C4, Secuencia, ERD Físico, Stack vs. Infra, ADR):** `sdlc-architecture-design`
-- **Fases 4–7 (Código por Niveles, TDD, Postman CLI, k6, QA y Operación):** `sdlc-delivery-operations`
+- **Fases 4–7 (Código por Niveles, QA y Operación):** `sdlc-delivery-operations`
+- **Skills de apoyo (Fases 4–5), se combinan con la anterior:**
+  - `test-driven-development` — antes de escribir cualquier código de implementación o corrección (Niveles 1–5).
+  - `systematic-debugging` — ante cualquier bug, test fallido o comportamiento inesperado, antes de proponer una corrección.
+  - `postman-cli` — colecciones y pruebas funcionales de API en `postman/` (desde Nivel 2).
+  - `k6-load-testing` — pruebas de carga y escalabilidad (desde Nivel 4).
 
 ## 3. Regla de Despacho Automático
 Antes de ejecutar cualquier tarea:
