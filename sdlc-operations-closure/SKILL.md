@@ -16,7 +16,7 @@ Do not move the `Proyecto` to `6 Operación` until all hold; report any that doe
 ## Phase 6 - Operación
 
 ### Deploy decision (check in this order)
-1. **Freeze:** is a live event scheduled within 24h? If yes, **checklist mode only**: no schema migrations, refactors, dependency upgrades, or unverified deploys. Only a pre-approved hotfix with rollback ready, and only with explicit user confirmation.
+1. **Freeze:** is a live event scheduled within 24h? The hook `hooks/sdlc_gates.py` enforces it from the file `.sdlc-freeze` at the project root (`event_start: <ISO datetime with offset>`, optional `event_end:`); create it when an event is scheduled and delete it after lifting the freeze. If the freeze is active, **checklist mode only**: no schema migrations, refactors, dependency upgrades, or unverified deploys. Only a pre-approved hotfix with rollback ready, and only with explicit user confirmation.
 2. **Gate:** all entry-gate checks still hold on the commit to be deployed.
 3. **Rollback:** the previous version and, if data changes, the pre-migration backup are identified before deploying.
 4. **Confirm with the user** before any deploy to staging/production; an earlier approval does not cover a new deploy.
