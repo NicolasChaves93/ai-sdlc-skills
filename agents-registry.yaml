@@ -9,8 +9,9 @@ agents:
       - "Orquestación general del flujo SDLC y despacho de subtareas"
       - "Fase 4 (Construcción Hexagonal por niveles, dominio puro y adaptadores)"
       - "Fase 5 (TDD, tests unitarios/integración, colecciones Postman CLI y scripts k6)"
+      - "Fases 6-7 (Operación en vivo, compuerta de deploy y freeze 24h, SOP-NN, cierre, retrospectiva)"
       - "Refactoring arquitectónico y depuración sistemática"
-    phases: [4, 5]
+    phases: [4, 5, 6, 7]
 
   gemini:
     role: "product_architect_and_notion_sync"
@@ -20,5 +21,5 @@ agents:
       - "Sincronización directa con las 10 bases de datos de Notion MCP"
       - "Fase 0 (Ideación) y Fases 1-2 (BPMN As-Is/To-Be, Simulador HTML, DMN, UML, Historias)"
       - "Fase 3 (C4, ERD Físico, Secuencia, ADRs)"
-      - "Cierres de corte, auditoría Mermaid y operación en vivo (Fases 6-7)"
-    phases: [0, 1, 2, 3, 6, 7]
+      - "Auditoría Mermaid de los diagramas de las Fases 0-3"
+    phases: [0, 1, 2, 3]

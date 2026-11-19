@@ -1,10 +1,10 @@
 ---
 name: sdlc-delivery-operations
-description: Execute Phases 4, 5, 6, and 7 of the Agile SDLC (Implementation, QA Test Cases & Verification, Sprint Iterations, Operations SOP, and Living Documentation split between Git Repo and Notion) for any active project. Use when implementing stories, writing tests for BR-XX rules, populating Casos de prueba in Notion, planning Iteraciones, or running operational checklists and retrospectives.
+description: Execute Phases 4 and 5 of the Agile SDLC (Implementation, QA Test Cases & Verification, Sprint Iterations, and Living Documentation split between Git Repo and Notion) for any active project. Use when implementing stories, writing tests for BR-XX rules, populating Casos de prueba in Notion, or planning Iteraciones. For live operation, deploys, SOP checklists and closure use sdlc-operations-closure.
 ---
-# SDLC Phases 4–7 - Implementation, QA, Delivery, and Operations (Multi-Project)
+# SDLC Phases 4–5 - Implementation and QA (Multi-Project)
 
-Guide execution from code implementation (`4 Construcción`) through QA (`5 Entrega`), live operations (`6 Operación`), and closure (`7 Cierre`) for whichever project and local repository are currently active.
+Guide execution from code implementation (`4 Construcción`) through QA (`5 Entrega`) for whichever project and local repository are currently active. Live operation (`6 Operación`) and closure (`7 Cierre`) are handled by **`sdlc-operations-closure`**.
 
 ## Mandatory Pre-Implementation Gate (Stop Before Writing Any Code!)
 
@@ -33,10 +33,10 @@ Before creating directories, boilerplate, or source code files:
 - Generate structured **`Casos de prueba`** (`db: 41ae618d-5d53-81c1-92e2-fd49db796abf`) in Notion linked strictly to `Proyecto`, `Historia`, and `Regla` (`BR-XX`) — never directly to `Requisito`.
 
 ### Step 3: Implementation & Operational Readiness (`SOP-NN`)
-- Implement modular code matching Phase 3 hexagonal boundaries and verify operational/deployment runbooks (`SOP-NN`) when moving to `6 Operación`.
+- Implement modular code matching Phase 3 hexagonal boundaries and draft the operational/deployment runbooks (`SOP-NN`) so they are ready for the entry gate of `sdlc-operations-closure`.
 
-### Step 4: Sprint Review, Retrospective & Next Loop
-- Update item statuses in Notion, log Sprint Review / Lessons Learned in **`Documentos`**, and identify the next backlog slice to loop back into Phase 1/2 or Phase 3.
+### Step 4: Hand-off to Operation
+- Update item statuses in Notion and, once the level is verified, hand off to **`sdlc-operations-closure`** (entry gate, deploy, Sprint Review, retrospective and next loop live there).
 
 ## Gotchas
 
@@ -51,7 +51,7 @@ Before creating directories, boilerplate, or source code files:
 - **Persistence Integration Tests (Stages 3–4):** Automated repository/database tests verifying SQLite and PostgreSQL transactions, constraints, and connection pooling.
 - **Load & Concurrency Tests (Stage 4 — `k6`):** Store `k6` scripts in `k6/` to validate `RNF` concurrency thresholds (e.g., burst traffic, p95 latency, WebSocket/HTTP throughput) against staging/production infrastructure limits.
 
-## Notion Sync & Operational Freeze Rules (Phases 4–6)
+## Notion Sync & Freeze Rules (Phases 4–5)
 
-- **Mandatory State Sync on Milestone Advance:** Whenever an evolutionary stage (`Level 1` to `Level 5`) or module slice completes, update the `Proyecto` phase in Notion (`4 Construcción` / `5 Entrega` / `6 Operación`), verify Mermaid diagram syntax before moving `Documentos` from `Borrador` to `Aprobado`, and ensure every implemented `BR-XX` rule has matching `Casos de prueba` linked to its `HU-NN`.
-- **Live Event Deployment Freeze (24h Rule):** When operating under `Scrumban` or `Kanban` for live events, enforce a strict **24-hour pre-event deployment freeze** (`SOP-NN` checklist mode only — no schema migrations, refactors, or unverified deploys within 24h of a scheduled live session).
+- **Mandatory State Sync on Milestone Advance:** Whenever an evolutionary stage (`Level 1` to `Level 5`) or module slice completes, update the `Proyecto` phase in Notion (`4 Construcción` / `5 Entrega`; `6 Operación` is set by `sdlc-operations-closure`), verify Mermaid diagram syntax before moving `Documentos` from `Borrador` to `Aprobado`, and ensure every implemented `BR-XX` rule has matching `Casos de prueba` linked to its `HU-NN`.
+- **Live Event Deployment Freeze (24h Rule):** Do not start migrations, refactors, or unverified changes within 24h of a scheduled live session; the full rule and deploy decision are in `sdlc-operations-closure`.
