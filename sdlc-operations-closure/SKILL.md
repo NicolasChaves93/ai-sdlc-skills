@@ -43,7 +43,22 @@ Close a level/module/project only when:
 4. **Docs:** README, runbooks, ADR statuses and diagrams are current; Mermaid diagrams validated.
 5. **Retrospective:** write Lessons Learned in `Documentos` (what worked, what failed, what changes in the process), and turn each action into a backlog item.
 6. **Next loop:** pick the next slice and route it to Phase 1–2 (new business need) or Phase 3 (new technical decision) before any new code. The next Evolutionary Level starts only after this closure.
-7. **Final sync:** set `Proyecto` phase to `7 Cierre` (or the next phase for a continuing project) in Notion.
+7. **Final sync:** run the "Level-close Notion sync" below; the `Proyecto` phase moves to `7 Cierre` (or the next phase for a continuing project) only as its last step.
+
+### Level-close Notion sync (mandatory step 7, not hook-enforced)
+No hook can check Notion, so this step is a manual gate: a level is not closed until it is done and reported. Use the Notion MCP and `NOTION_SCHEMA.md`; **scope every query to the active `Proyecto`** (the databases are shared across projects).
+
+1. **Read before writing.** Query the project's `Iteración`, `Historias y tareas`, `Reglas de negocio` and `Casos de prueba`. Build a table of what Notion says vs. what the repo says (tests green, `CHANGELOG.md`, ADRs). Differences are findings, not things to overwrite silently.
+2. **Reconcile records** (Spanish values, existing property names; inspect the schema first, never invent a property):
+   - `HU-NN`/`TEC-NN`/`SOP-NN` of the level → `Hecho`, or moved to a named next `Iteración` with the user's agreement.
+   - `Casos de prueba` of the level → result status matching the last real run; no result is marked passed without evidence from this closure.
+   - ADRs in `PoCs y decisiones` touched by the level → status current (`Aprobado`, or superseded with a link to the new one).
+3. **Write the closure documents** in `Documentos`: Sprint Review with the evidence (test counts, Postman, k6 thresholds) and Lessons Learned. Link them to the `Iteración`. Validate Mermaid before setting `Aprobado`; otherwise leave `Borrador`.
+4. **Move the phase last.** Only after steps 1–3 pass, set the `Proyecto` phase (`7 Cierre`, or the next phase for a continuing project) and the level/iteration status.
+5. **Verify by re-reading.** Re-query the same records and confirm the writes landed; a write call returning without error is not proof.
+6. **Report** to the user: records changed (ID or title, old → new value), findings left open, and anything skipped with the reason. If a check fails or Notion is unreachable, the level stays open and the report says so.
+
+Writing to Notion is visible to other people: show the planned changes (step 2 table) and get the user's confirmation before step 2 on the first sync of a level. Never print the Notion token or paste it into any record.
 
 ## Gotchas
 - Conversation and Notion records in Spanish; code, branches and commits in English.
