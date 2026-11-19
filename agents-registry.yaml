@@ -1,0 +1,24 @@
+default_orchestrator: claude
+
+agents:
+  claude:
+    role: "orchestrator_and_builder"
+    auth_mode: "subscription_oauth (Plan $20/mes - mantener ANTHROPIC_API_KEY unset)"
+    cli_command: "claude -p"
+    best_for:
+      - "Orquestación general del flujo SDLC y despacho de subtareas"
+      - "Fase 4 (Construcción Hexagonal por niveles, dominio puro y adaptadores)"
+      - "Fase 5 (TDD, tests unitarios/integración, colecciones Postman CLI y scripts k6)"
+      - "Refactoring arquitectónico y depuración sistemática"
+    phases: [4, 5]
+
+  gemini:
+    role: "product_architect_and_notion_sync"
+    auth_mode: "api_key (GEMINI_API_KEY)"
+    cli_command: "gemini -p"
+    best_for:
+      - "Sincronización directa con las 10 bases de datos de Notion MCP"
+      - "Fase 0 (Ideación) y Fases 1-2 (BPMN As-Is/To-Be, Simulador HTML, DMN, UML, Historias)"
+      - "Fase 3 (C4, ERD Físico, Secuencia, ADRs)"
+      - "Cierres de corte, auditoría Mermaid y operación en vivo (Fases 6-7)"
+    phases: [0, 1, 2, 3, 6, 7]
