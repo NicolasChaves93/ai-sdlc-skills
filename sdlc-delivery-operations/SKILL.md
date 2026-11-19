@@ -50,3 +50,8 @@ Before creating directories, boilerplate, or source code files:
 - **API Functional & Exploratory Tests (Stage 2+ — Postman Desktop & CLI):** Use Postman for interactive endpoint exploration during development, functional contract assertions (`pm.test`), regression runs via `postman collection run`, and shareable API documentation (`postman/`).
 - **Persistence Integration Tests (Stages 3–4):** Automated repository/database tests verifying SQLite and PostgreSQL transactions, constraints, and connection pooling.
 - **Load & Concurrency Tests (Stage 4 — `k6`):** Store `k6` scripts in `k6/` to validate `RNF` concurrency thresholds (e.g., burst traffic, p95 latency, WebSocket/HTTP throughput) against staging/production infrastructure limits.
+
+## Notion Sync & Operational Freeze Rules (Phases 4–6)
+
+- **Mandatory State Sync on Milestone Advance:** Whenever an evolutionary stage (`Level 1` to `Level 5`) or module slice completes, update the `Proyecto` phase in Notion (`4 Construcción` / `5 Entrega` / `6 Operación`), verify Mermaid diagram syntax before moving `Documentos` from `Borrador` to `Aprobado`, and ensure every implemented `BR-XX` rule has matching `Casos de prueba` linked to its `HU-NN`.
+- **Live Event Deployment Freeze (24h Rule):** When operating under `Scrumban` or `Kanban` for live events, enforce a strict **24-hour pre-event deployment freeze** (`SOP-NN` checklist mode only — no schema migrations, refactors, or unverified deploys within 24h of a scheduled live session).
