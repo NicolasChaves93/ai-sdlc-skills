@@ -6,7 +6,6 @@ Decisión y pruebas: **ADR-001** en Notion (PoCs y decisiones). Herramienta pers
 ## Uso
 ```
 ./run.sh examples/permisos     # ejemplo incluido; abre http://127.0.0.1:8099
-./run.sh                       # por defecto, el espacio de trabajo ~/proyectos/sim-juegos
 ./run.sh ~/proyectos/otro 8100 # otro espacio de trabajo / puerto
 ./test.sh                      # motor, PM4Py, servidor y preparación de modelos
 ```
@@ -50,4 +49,3 @@ Sin comprobar: que los tiempos de las compuertas paralelas se solapen. El botón
 
 ## Pendiente (alcance actual: solo el sorteo)
 Trivia: `contadores`/`derivados` del escenario, multi-instancia de participantes y temporizadores sobre subprocesos (el reloj simulado está probado pero aún no conectado al motor).
-Retirar el prototipo en JavaScript (`sim-juegos/legacy-js`) cuando ya no haga falta como referencia.

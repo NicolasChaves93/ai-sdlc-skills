@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Genera <espacio-de-trabajo>/build/: diagrama plano con carriles reales, diagrama por subprocesos y geometría de carriles.
-# Uso: ./prepare.sh ~/proyectos/sim-juegos
+# Uso: ./prepare.sh <espacio-de-trabajo>
 set -euo pipefail
 T="$(cd "$(dirname "$0")" && pwd)"; W="$(cd "${1:?uso: prepare.sh <espacio-de-trabajo>}" && pwd)"
 [ -d "$T/web/node_modules" ] || (cd "$T/web" && npm install --silent)

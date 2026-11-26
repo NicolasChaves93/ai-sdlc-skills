@@ -4,7 +4,7 @@ Solo biblioteca estándar. Escucha únicamente en 127.0.0.1, sin CORS abierto y 
 externa puede leer el proyecto ni lanzar simulaciones. Las simulaciones se ejecutan de una en una (candado global: el reloj
 simulado de los temporizadores de SpiffWorkflow es global).
 
-Uso: python server/server.py --workspace ~/proyectos/sim-juegos [--port 8099]
+Uso: python server/server.py --workspace <espacio-de-trabajo> [--port 8099]
 """
 import argparse
 import json
