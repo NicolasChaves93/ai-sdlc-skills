@@ -112,7 +112,7 @@ mi-proceso/
 
 `escala` multiplica la duración.
 
-**Rombos:** `prob` (lo no declarado se reparte entre las demás flechas); `tipo: "contador"`, `veces`, `flujo` (repite hasta la N-ésima visita); `tipo: "exitos"`, `veces`, `prob`, `flujo` (repite hasta juntar N aciertos, p. ej. «buscar 5 ganadores reales»; no lo reemplaces por una probabilidad promedio, exagera la variación); `caminoMejor`, `caminoPeor`, `repPeor`.
+**Rombos:** `prob` (lo no declarado se reparte entre las demás flechas); `tipo: "contador"`, `veces`, `flujo` (repite hasta la N-ésima visita); `tipo: "exitos"`, `veces`, `prob`, `flujo` (repite hasta juntar N aciertos, p. ej. «buscar 5 ganadores reales»; no lo reemplaces por una probabilidad promedio, exagera la variación); `caminoMejor`, `caminoPeor`, `repPeor`. En cualquier elemento, `"reinicia": ["<rombo>"]` borra la cuenta de esos rombos al pasar por él (útil si una vuelta se abandona antes de completarse).
 
 ## Piezas
 

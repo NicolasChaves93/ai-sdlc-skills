@@ -285,6 +285,8 @@ class Simulation:
             if cs["n"] > self.max_case_steps or (self.max_steps and self.steps > self.max_steps):
                 raise SimulationTooLong(f"un caso superó {self.max_case_steps} pasos: ¿hay un bucle sin fin (p. ej. un camino forzado)?")
             self._arrive(cs, bid, case)
+            for other in self.sc.cfg(bid).get("reinicia", []):      # p. ej. cerrar un sorteo antes: la cuenta de la vuelta se pierde
+                counters.pop(other, None)
             if kind == "ExclusiveGateway" and len(self.model.outgoing.get(bid, [])) > 1:
                 cs["chosen"] = self._choose(bid, counters)
                 t.data["ruta_" + bid] = cs["chosen"]

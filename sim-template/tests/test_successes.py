@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "engine"))
-from simengine import Scenario, Simulation, prepare  # noqa: E402
+from simengine import Scenario, Simulation, SimulationTooLong, prepare  # noqa: E402
 
 NS = 'xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"'
 
@@ -24,6 +24,15 @@ def tries(p, seed, rounds=1):
     sc = {"params": {"N": {"valor": 5}, "P": {"valor": p}, "V": {"valor": rounds}}, "raiz": {}, "recursos": {},
           "elementos": {"T": {"dur": 1}, "g": {"tipo": "exitos", "veces": "N", "prob": "P", "flujo": "again"}, "more": {"tipo": "contador", "veces": "V", "flujo": "next"}}}
     return Simulation(prepare(XML), Scenario(sc, {}), seed=seed, record_samples=False).run().results(False)["stats"]["T"]["entradas"]
+
+
+class Restart(unittest.TestCase):
+    def test_reiniciar_borra_la_cuenta_de_una_vuelta_abandonada(self):
+        sc = {"params": {}, "raiz": {}, "recursos": {}, "elementos": {"T": {"dur": 1, "reinicia": ["g"]}, "g": {"tipo": "exitos", "veces": 2, "prob": 1, "flujo": "again"}}}
+        sim = Simulation(prepare(XML), Scenario(sc, {}), seed=1, record_samples=False, max_case_steps=60)
+        sc["elementos"]["more"] = {"tipo": "contador", "veces": 1, "flujo": "next"}
+        with self.assertRaises(SimulationTooLong):      # si cada paso borra la cuenta, nunca se juntan 2 aciertos
+            sim.run()
 
 
 class Successes(unittest.TestCase):
