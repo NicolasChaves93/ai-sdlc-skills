@@ -45,7 +45,8 @@ class Workspace:
         lanes = os.path.join(b, f"{m}_lanes.json")
         return {"nombre": self.cfg.get("name", m), "escenario": json.loads(_read(os.path.join(self.root, self.cfg["scenario"]))),
                 "modelos": {"plana": _read(os.path.join(b, f"{m}_flat.bpmn")), "subprocesos": _read(os.path.join(b, f"{m}_hier.bpmn"))},
-                "carriles": json.loads(_read(lanes)) if os.path.exists(lanes) else {}}
+                "carriles": json.loads(_read(lanes)) if os.path.exists(lanes) else {},
+                "modelo": m, "ui": self.cfg.get("ui", {})}
 
 
 def _build_sim(body, live=False, on_move=None):

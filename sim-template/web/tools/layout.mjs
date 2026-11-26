@@ -10,6 +10,17 @@ export const local = n => n.localName;
 // y su columna sale del orden del flujo. Devuelve la geometría de los carriles para dibujarlos en el visor.
 const CC = 'http://colombiancode.co/bpmn';
 const ORDEN = ['Cliente', 'Participante', 'Administrador', 'Operador', 'Sistema'];
+let ORDEN_BPMN = [];                        // carriles dibujados en Camunda Modeler, en su orden
+// Copia el carril de Camunda (laneSet) al atributo cc:carril de cada paso; un cc:carril escrito a mano tiene prioridad.
+export function leerCarriles(doc) {
+  doc.documentElement.setAttribute('xmlns:cc', CC);
+  const byId = {}; for (const e of [...doc.getElementsByTagName('*')]) if (e.getAttribute('id')) byId[e.getAttribute('id')] = e;
+  ORDEN_BPMN = [];
+  for (const l of [...doc.getElementsByTagNameNS(BPMN, 'lane')]) {
+    const name = l.getAttribute('name'); if (!name) continue; ORDEN_BPMN.push(name);
+    for (const r of [...l.getElementsByTagNameNS(BPMN, 'flowNodeRef')]) { const n = byId[r.textContent.trim()]; if (n && !n.getAttributeNS(CC, 'carril')) n.setAttributeNS(CC, 'cc:carril', name); }
+  }
+}
 const GAP = 62, X0 = 62, PAD = 20;
 export function carriles(doc, diagram, scopeEl) {
   const sem = {}; for (const c of kids(scopeEl)) sem[c.getAttribute('id')] = c;
@@ -37,7 +48,8 @@ export function carriles(doc, diagram, scopeEl) {
   for (const lab of [...diagram.getElementsByTagNameNS(DI, 'BPMNLabel')]) lab.parentNode.removeChild(lab);
   // varios pasos en el mismo carril y columna se apilan
   const cell = {}; for (const n of nodes) { const id = n.getAttribute('id'); const k = lane[id] + '|' + rank[id]; (cell[k] ||= []).push(id); }
-  const names = ORDEN.filter(l => nodes.some(n => lane[n.getAttribute('id')] === l)); const stackMax = {};
+  const used = [...new Set(nodes.map(n => lane[n.getAttribute('id')]))]; const pref = [...new Set([...ORDEN_BPMN, ...ORDEN])];
+  const names = [...pref.filter(l => used.includes(l)), ...used.filter(l => !pref.includes(l))]; const stackMax = {};
   for (const [k, ids] of Object.entries(cell)) { const l = k.split('|')[0]; stackMax[l] = Math.max(stackMax[l] || 1, ids.length); }
   const geo = []; let y = 0; const top = {}, hh = {};
   for (const l of names) { hh[l] = Math.max(150, stackMax[l] * 100 + 2 * PAD + 30); top[l] = y; geo.push({ n: l, y, h: hh[l] }); y += hh[l]; }

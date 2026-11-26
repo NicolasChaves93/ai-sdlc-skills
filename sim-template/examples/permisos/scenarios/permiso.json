@@ -1,0 +1,54 @@
+{
+  "nombre": "Permisos",
+  "params": {
+    "N": {
+      "etiqueta": "Solicitudes",
+      "valor": 40,
+      "min": 1,
+      "max": 500,
+      "paso": 1,
+      "origen": "supuesto",
+      "unidad": "solicitudes"
+    }
+  },
+  "raiz": {
+    "instancias": "N",
+    "ventana": 3600,
+    "llegadas": {
+      "tipo": "uniforme",
+      "min": 0,
+      "max": 3600
+    }
+  },
+  "recursos": {
+    "jefe": {
+      "nombre": "Jefe",
+      "capacidad": 1
+    }
+  },
+  "elementos": {
+    "T_Solicitar": {
+      "dur": {
+        "tipo": "const",
+        "valor": 60
+      }
+    },
+    "T_Revisar": {
+      "dur": {
+        "tipo": "triangular",
+        "min": 60,
+        "moda": 120,
+        "max": 300
+      },
+      "recurso": "jefe"
+    },
+    "G_Aprueba": {
+      "prob": {
+        "F_Si": 0.8
+      }
+    },
+    "T_Registrar": {
+      "dur": 2
+    }
+  }
+}

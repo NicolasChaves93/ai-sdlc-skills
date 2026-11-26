@@ -5,11 +5,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { layoutProcess } from 'bpmn-auto-layout';
-import { carriles, DC, DD, BPMN, DI, kids, local } from './layout.mjs';
+import { carriles, leerCarriles, DC, DD, BPMN, DI, kids, local } from './layout.mjs';
 
 const [modelo = 'sorteo', titulo = 'Proceso', ver = 'v3'] = process.argv.slice(2);
 const CC = 'http://colombiancode.co/bpmn';
 const doc = new DOMParser().parseFromString(fs.readFileSync(`models/${modelo}.bpmn`, 'utf8'), 'text/xml');
+leerCarriles(doc);
 const proc = kids(doc.documentElement).find(n => local(n) === 'process');
 
 // ---- 1. leer todo el árbol en estructuras simples
@@ -17,6 +18,7 @@ const nodes = {}, flows = {}, subs = {};
 (function walk(scope, depth, parent) {
   for (const c of kids(scope)) {
     const t = local(c), id = c.getAttribute('id');
+    if (/^(laneSet|textAnnotation|association|documentation|extensionElements|ioSpecification|dataObject|dataObjectReference|dataStoreReference|property)$/.test(t)) continue;
     if (t === 'sequenceFlow') flows[id] = { id, name: c.getAttribute('name') || '', s: c.getAttribute('sourceRef'), t: c.getAttribute('targetRef') };
     else { nodes[id] = { id, tag: t, name: c.getAttribute('name') || '', carril: c.getAttributeNS(CC, 'carril') || '', scope: parent, el: c };
       if (t === 'subProcess') { subs[id] = { id, depth, parent }; walk(c, depth + 1, id); } }
@@ -43,7 +45,7 @@ for (const sp of Object.values(subs).sort((a, b) => b.depth - a.depth)) {
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const orden = Object.values(nodes);
 const procId = `Process_ToBe_${modelo[0].toUpperCase() + modelo.slice(1)}_${ver}`;
-const cuerpo = orden.map(n => `    <bpmn:${n.tag} id="${n.id}"${n.name ? ` name="${esc(n.name)}"` : ''}${n.carril ? ` cc:carril="${n.carril}"` : ''}/>`).join('\n')
+const cuerpo = orden.map(n => `    <bpmn:${n.tag} id="${n.id}"${n.name ? ` name="${esc(n.name)}"` : ''}${n.carril ? ` cc:carril="${esc(n.carril)}"` : ''}/>`).join('\n')
   + '\n' + Object.values(flows).map(f => `    <bpmn:sequenceFlow id="${f.id}"${f.name ? ` name="${esc(f.name)}"` : ''} sourceRef="${f.s}" targetRef="${f.t}"/>`).join('\n');
 const sem = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:cc="${CC}" id="Definitions_Flat" targetNamespace="http://colombiancode.co/plataforma-v2/${modelo}">
@@ -68,12 +70,12 @@ const collab = dEl('collaboration', { id: 'Collaboration_' + procId });
 const pid = 'Participant_' + procId; collab.appendChild(dEl('participant', { id: pid, name: titulo, processRef: procId }));
 defs.insertBefore(collab, process_);
 const laneSet = dEl('laneSet', { id: 'LaneSet_' + procId });
-geo.lanes.forEach(l => { const lane = dEl('lane', { id: 'Lane_' + l.n, name: l.n }); for (const [id, ln] of Object.entries(geo.of)) if (ln === l.n) lane.appendChild(dEl('flowNodeRef', {})).textContent = id; laneSet.appendChild(lane); });
+geo.lanes.forEach((l, i) => { const lane = dEl('lane', { id: 'Lane_' + i, name: l.n }); for (const [id, ln] of Object.entries(geo.of)) if (ln === l.n) lane.appendChild(dEl('flowNodeRef', {})).textContent = id; laneSet.appendChild(lane); });
 process_.insertBefore(laneSet, process_.firstChild);
 plane.setAttribute('bpmnElement', collab.getAttribute('id'));
 const shape = (id, x, y, w, h) => { const s = dEl('BPMNShape', { id: id + '_di', bpmnElement: id, isHorizontal: 'true' }, DI, 'bpmndi'); const b = dEl('Bounds', { x, y, width: w, height: h }, DC, 'dc'); s.appendChild(b); return s; };
 const first = plane.firstChild; const ins = n => plane.insertBefore(n, first);
-ins(shape(pid, POOL_X, 0, W, H)); let y = 0; for (const l of geo.lanes) { ins(shape('Lane_' + l.n, POOL_X + 30, y, W - 30, l.h)); y += l.h; }
+ins(shape(pid, POOL_X, 0, W, H)); let y = 0; for (const [i, l] of geo.lanes.entries()) { ins(shape('Lane_' + i, POOL_X + 30, y, W - 30, l.h)); y += l.h; }
 // limpiar atributos auxiliares
 defs.removeAttribute('xmlns:cc'); defs.setAttribute('id', `Definitions_ToBe_${modelo}_${ver}`);
 for (const e of laid.getElementsByTagName('*')) for (const a of [...e.attributes]) if (a.name === 'cc:carril') e.removeAttribute(a.name);

@@ -2,7 +2,7 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import { parseModel } from './model.js';
 import * as api from './api.js';
 
-let XML_PLANO = '', XML_JER = '', BASE = null, CARRILES = {};   // se cargan del servidor al arrancar (espacio de trabajo del proyecto)
+let XML_PLANO = '', XML_JER = '', BASE = null, CARRILES = {}, MODELO = 'modelo', UI = {};   // se cargan del servidor al arrancar (espacio de trabajo del proyecto)
 
 const TIPOS = { StartEvent: 'Evento de inicio', EndEvent: 'Evento de fin', UserTask: 'Tarea de una persona', ServiceTask: 'Tarea del sistema', ManualTask: 'Tarea manual', Task: 'Tarea', ExclusiveGateway: 'Compuerta (un solo camino)', ParallelGateway: 'Compuerta paralela', SubProcess: 'Subproceso', BoundaryEvent: 'Temporizador límite', IntermediateCatchEvent: 'Espera' };
 const METRICAS = { esperaTotal: ['Espera acumulada', 's'], esperaP95: ['Espera p95', 's'], colaMax: ['Cola máx.', ''], cortadas: ['Cortados', ''], entradas: ['Entradas', ''], servicioProm: ['Duración prom.', 's'] };
@@ -24,7 +24,7 @@ const S = { base: null, seqSim: 0, seqCrit: 0, busy: false, vista: 'plana', xml:
   res: null, metrica: 'esperaTotal', sel: null, clock: 0, playing: false, idx: 0, dots: [], lastSample: -1, overl: {}, flowLbl: [], marks: new Set(), cuellos: new Set(),
   live: null, movs: [], vel: 60, ultRefresco: 0, nRefresco: 0 };
 
-const KEY = 'simv2:sorteo';
+let KEY = 'simv2';                       // se completa con el nombre del modelo al arrancar
 const firma = () => JSON.stringify([Object.keys(S.base.params).sort(), Object.keys(S.base.elementos).sort()]);   // lo guardado solo vale para el escenario con que se guardó
 function guardar() { localStorage.setItem(KEY, JSON.stringify({ firma: firma(), params: S.params, elementos: S.sc.elementos, modo: S.modo, perfil: S.perfil, semilla: S.semilla, forzar: S.forzar })); }
 function cargarGuardado() {
@@ -78,7 +78,7 @@ function pintarControles() {
   for (const b of document.querySelectorAll('[data-vel]')) b.classList.toggle('on', Number(b.dataset.vel) === S.vel);
   $('scrub').hidden = vivo; $('etqVivo').hidden = !vivo; $('play').textContent = S.playing ? '❚❚' : '▶';
   $('modoCaso').value = S.modo; $('perfil').value = S.perfil; $('semilla').textContent = S.semilla;
-  $('nombreArchivo').textContent = S.xmlUsuario ? 'importado.bpmn' : (S.vista === 'plana' ? 'sorteo_v3.bpmn' : 'sorteo_v3_subprocesos.bpmn');
+  $('nombreArchivo').textContent = S.xmlUsuario ? 'importado.bpmn' : (MODELO + (S.vista === 'plana' ? '.bpmn' : '_subprocesos.bpmn'));
 }
 
 // ---------- parámetros globales ----------
@@ -104,7 +104,7 @@ async function simular(reintento) {
   try { r = await api.simulate(peticion()); }
   catch (e) {
     if (mi !== S.seqSim) return;
-    if (e.tipo === 'bucle' && !reintento && Object.keys(S.forzar).length) { aviso('Ese camino forzado crea un bucle sin fin (el evento nunca termina). Quité los caminos forzados.'); S.forzar = {}; guardar(); if (S.sel) verPaso(S.sel); return simular(true); }
+    if (e.tipo === 'bucle' && !reintento && Object.keys(S.forzar).length) { aviso('Ese camino forzado crea un bucle sin fin (el caso nunca termina). Quité los caminos forzados.'); S.forzar = {}; guardar(); if (S.sel) verPaso(S.sel); return simular(true); }
     aviso('La simulación no se pudo completar: ' + e.message, 9000); return;
   }
   if (mi !== S.seqSim) return;                 // llegó tarde: ya se pidió otra con valores más nuevos
@@ -113,14 +113,20 @@ async function simular(reintento) {
   pintarKpis(); pintarCalor(); actualizarVivo(true); pintarReloj(); pintarCriticos().catch(e => console.error(e));
 }
 
+// Recurso de referencia: el que se llame «sistema» o, si no hay, el más saturado.
+const sist = r => { const v = Object.values(r.recursos); return v.find(x => /sistema/i.test(x.id)) || v.sort((a, b) => b.saturado - a.saturado)[0] || { nombre: 'Sin recursos', colaMax: 0, saturado: 0 }; };
+const totalCasos = () => { const x = S.sc.raiz?.instancias ?? 1; return S.params[x] ?? x; };
+// Indicadores propios del proyecto (workspace.json → ui.indicadores). «{A+B}» = veces que se pasó por A y B.
+const cuenta = (r, expr) => String(expr).split('+').reduce((a, id) => a + (r.stats[id.trim()]?.entradas || 0), 0);
+const plantilla = (r, txt) => String(txt || '').replace(/\{([^}]+)\}/g, (_, e) => cuenta(r, e));
 function pintarKpis() {
-  const r = S.res, k = $('kpis'); k.innerHTML = ''; const g = el('div', { className: 'kg' }); const n = id => r.stats[id]?.entradas || 0;
+  const r = S.res, k = $('kpis'); k.innerHTML = ''; const g = el('div', { className: 'kg' });
   const add = (t, v, sub) => g.append(el('div', { className: 'kp' }, el('small', { textContent: t }), el('b', { textContent: v }), ...(sub ? [el('em', { textContent: sub })] : [])));
-  const sis = Object.values(r.recursos).find(x => /sistema/i.test(x.id));
-  add('Eventos completados', String(r.ciclo.n), 'de ' + S.params.K); add('Duración del evento', mmss(r.duracion));
-  add('Tiempo medio por evento', mmss(r.ciclo.prom), 'p95 ' + mmss(r.ciclo.p95)); add('Sorteados en pantalla', String(n('T_Seleccionar')), n('T_RegReal') + ' ganadores reales · ' + n('G_Otra') + ' sorteos');
-  add('Cargas con rechazados', String(n('T_InfRech') + n('T_InfRechOp')), 'de ' + (n('T_Validar') + n('T_ValidarOp')) + ' cargas · ' + n('T_InfNinguno') + ' sin ninguno'); add('Eliminaciones con ganadores', String(n('T_Autorizar')), 'de ' + n('T_VerElim') + ' eliminaciones · ' + n('G_Op') + ' operaciones');
-  add('Sorteos sin elegibles', String(n('T_Ajustar'))); add('Sistema al límite', sis ? (sis.saturado * 100).toFixed(1) + ' %' : '—', 'cola máx. ' + (sis?.colaMax || 0));
+  const x = sist(r);
+  add('Casos completados', String(r.ciclo.n), 'de ' + totalCasos()); add('Duración total', mmss(r.duracion));
+  add('Tiempo medio por caso', mmss(r.ciclo.prom), 'p95 ' + mmss(r.ciclo.p95));
+  for (const i of UI.indicadores || []) add(i.titulo, String(cuenta(r, i.valor)), plantilla(r, i.detalle));
+  add(x.nombre.split(' (')[0] + ' al límite', (x.saturado * 100).toFixed(1) + ' %', 'cola máx. ' + x.colaMax);
   k.append(g);
 }
 
@@ -193,19 +199,19 @@ async function pintarCriticos(rapido) {
   }
   for (const s of Object.values(r.stats)) { const e = S.model.els[s.id]; if (e?.type === 'SubProcess' && s.cortadas > 0) {
       const hijos = S.model.scopes[s.id].nodes.find(n => S.model.els[n].type === 'StartEvent'); const lleg = hijos ? valor(r.stats[hijos], 'entradas') : 0; const pct = lleg ? ` (${(100 * s.cortadas / lleg).toFixed(1)} % de los ${lleg} que empezaron)` : '';
-      items.push({ score: 1e6 + s.cortadas, sev: s.cortadas / (lleg || 1) > 0.1 ? 'alto' : 'medio', id: s.id, t: 'Respuestas descartadas por vencer el tiempo', d: `${s.cortadas} instancias de «${e.name}» se cortaron${pct}. Puede ser cola del sistema (se arregla con capacidad) o tiempo humano (se arregla con más tiempo por pregunta).` }); } }
+      items.push({ score: 1e6 + s.cortadas, sev: s.cortadas / (lleg || 1) > 0.1 ? 'alto' : 'medio', id: s.id, t: 'Pasos cortados por vencer el tiempo', d: `${s.cortadas} instancias de «${e.name}» se cortaron${pct}. Puede ser falta de capacidad o un plazo demasiado corto.` }); } }
   const ya = new Set(items.map(i => i.id));
   for (const s of Object.values(r.stats)) { if (esTarea(s.id) && !ya.has(s.id) && s.esperaP95 > 3) items.push({ score: s.esperaTotal, sev: 'bajo', id: s.id, t: `Espera alta en «${S.model.els[s.id].name}»`, d: `La espera p95 es ${fmt(s.esperaP95, 's')} y la máxima ${fmt(s.esperaMax, 's')}.` }); }
   items.sort((a, b) => b.score - a.score);
 
   sec(box, 'Alertas');
-  if (!items.length) box.append(el('div', { className: 'card ok' }, el('b', { textContent: 'Sin alertas con estos parámetros' }), el('p', { textContent: 'No hay colas ni cortes relevantes. Mira abajo dónde se va el tiempo, y sube participantes o baja la capacidad para forzar un cuello de botella.' })));
+  if (!items.length) box.append(el('div', { className: 'card ok' }, el('b', { textContent: 'Sin alertas con estos parámetros' }), el('p', { textContent: 'No hay colas ni cortes relevantes. Mira abajo dónde se va el tiempo, y sube la carga o baja la capacidad para forzar un cuello de botella.' })));
   for (const it of items.slice(0, 6)) box.append(el('div', { className: 'card ' + it.sev, onclick: () => ir(it.id) }, el('b', { textContent: it.t }), el('p', { textContent: it.d }), el('div', { className: 'go', textContent: 'Ver en el diagrama →' })));
 
   // dónde se va el tiempo (trabajo + espera acumulados de todos los participantes)
   const filas = Object.values(r.stats).filter(s => esTarea(s.id)).map(s => ({ id: s.id, tot: s.servicioProm * s.completadas + s.esperaTotal, s })).filter(f => f.tot > 0).sort((a, b) => b.tot - a.tot);
   const suma = filas.reduce((a, f) => a + f.tot, 0);
-  sec(box, 'Dónde se va el tiempo', 'Suma de trabajo + espera de todos los participantes, por paso. Los pasos de una persona (cargar, configurar, mostrar) pesan mucho aunque no sean un problema.');
+  sec(box, 'Dónde se va el tiempo', 'Suma de trabajo + espera de todos los casos, por paso. Los pasos de una persona pesan mucho aunque no sean un problema.');
   for (const f of filas.slice(0, 7)) {
     const pct = 100 * f.tot / suma; const nom = S.model.els[f.id].name;
     box.append(el('div', { className: 'card bajo', style: 'padding:6px 9px;border-left-color:#8aa4d6', onclick: () => ir(f.id) },
@@ -304,7 +310,7 @@ function verPaso(id) {
     const c = S.res.flowCount; box.append(el('p', { className: 'hint', textContent: 'Caminos tomados: ' + e.outgoing.map(f => `${S.model.flows[f].name || f}: ${c[f] || 0}`).join(' · ') }));
   }
   if (t === 'SubProcess') {
-    box.append(el('p', { className: 'hint', textContent: e.mi ? 'Se repite una vez por participante (en paralelo). Para ver su interior, haz clic en el «+».' : 'Haz clic en el «+» para ver su interior.' }));
+    box.append(el('p', { className: 'hint', textContent: e.mi ? 'Se repite en paralelo (multi-instancia). Para ver su interior, haz clic en el «+».' : 'Haz clic en el «+» para ver su interior.' }));
     if (e.mi) { box.append(campo(id, 'Cuántos entran (instancias)', 'instancias')); box.append(editorDur(id, 'Cómo llegan (retraso de cada uno)', 'llegadas')); }
   }
   box.append(el('button', { textContent: 'Restablecer este paso', onclick: () => { S.sc.elementos[id] = clone(S.base.elementos[id] || {}); cambio(); verPaso(id); } }));
@@ -351,7 +357,7 @@ function aplicarVivo(r, now, completo) {
   S.live.activos = r.activos; S.live.pendiente = r.pendiente; S.movs.push(...r.movs); if (S.movs.length > 400) S.movs.splice(0, S.movs.length - 400);
   pintarSnapshot(r.snapshot, r.activos);
   if (completo && r.resultados) { S.ultRefresco = now; S.res = r.resultados; S.nRefresco++; pintarKpis(); pintarCalor(); if (S.nRefresco % 6 === 0) pintarCriticos(true); }
-  if (!r.pendiente && S.playing) { pausar(); aviso('Todos los eventos terminaron. Inyecta más o reinicia.'); }
+  if (!r.pendiente && S.playing) { pausar(); aviso('Todos los casos terminaron. Inyecta más o reinicia.'); }
 }
 function cerrarVivo() { if (S.live) api.liveClose(S.live.id); S.live = null; }
 async function iniciarVivo(mantener) {
@@ -366,7 +372,7 @@ async function iniciarVivo(mantener) {
 function salirVivo() { if (!S.live) return; pausar(); limpiarDots(); cerrarVivo(); for (const id of S.cuellos) canvas.removeMarker(id, 'cuello'); S.cuellos.clear(); S.clock = 0; pintarControles(); simular(); }
 $('modoAnalisis').onclick = salirVivo; $('modoVivo').onclick = () => { if (!S.live) iniciarVivo(); };
 for (const b of document.querySelectorAll('[data-vel]')) b.onclick = () => { S.vel = Number(b.dataset.vel); pintarControles(); };
-const inyectar = async (n, cada) => { if (!S.live) await iniciarVivo(); if (!S.live) return; try { await api.liveInject(S.live.id, n, cada); } catch (e) { aviso(e.message); return; } if (!S.playing) reproducir(); aviso(`${n} evento${n > 1 ? 's' : ''} inyectado${n > 1 ? 's' : ''} en el reloj ${mmss(S.clock)}.`, 2500); };
+const inyectar = async (n, cada) => { if (!S.live) await iniciarVivo(); if (!S.live) return; try { await api.liveInject(S.live.id, n, cada); } catch (e) { aviso(e.message); return; } if (!S.playing) reproducir(); aviso(`${n} caso${n > 1 ? 's' : ''} inyectado${n > 1 ? 's' : ''} en el reloj ${mmss(S.clock)}.`, 2500); };
 $('btnInyectar').onclick = () => inyectar(1, 0); $('btnRafaga').onclick = () => inyectar(10, 3);
 $('vistaPlana').onclick = () => { if (S.vista !== 'plana') abrir('plana'); }; $('vistaSub').onclick = () => { if (S.vista !== 'subprocesos' && !S.xmlUsuario) abrir('subprocesos'); };
 
@@ -380,18 +386,26 @@ function pintarCondiciones() {
 }
 
 // ---------- pruebas: comparar casos y aumento de usuarios ----------
-const VARS = { K: { etq: 'Eventos simultáneos', vals: [1, 2, 5, 10, 20, 30, 50] }, B: { etq: 'Tamaño de la base', vals: [1000, 5000, 20000, 50000, 100000] } };
-const sist = r => Object.values(r.recursos).find(x => /sistema/i.test(x.id)) || { colaMax: 0, saturado: 0 };
-const reproc = r => ['T_InfNinguno', 'T_Ajustar'].reduce((a, id) => a + (r.stats[id]?.entradas || 0), 0);
+let VARS = {};
+function variables() {
+  if (UI.crecimiento) return UI.crecimiento;
+  const out = {};
+  for (const [k, d] of Object.entries(S.sc.params)) {
+    const vals = [...new Set([0.5, 1, 2, 4, 8].map(f => Math.min(d.max ?? Infinity, Math.max(d.min ?? 0, +(d.valor * f).toPrecision(3)))))];
+    if (vals.length > 1) out[k] = { etq: d.etiqueta, vals };
+  }
+  return out;
+}
+const reproc = r => (UI.reprocesos || []).reduce((a, id) => a + cuenta(r, id), 0);
 function tabla(cab, filas) {
   const t = el('table', { className: 'tbl' }); t.append(el('tr', {}, ...cab.map((c, i) => el('th', { textContent: c, className: i ? 'num' : '' }))));
   for (const f of filas) t.append(el('tr', { className: f.cls || '' }, ...f.c.map((c, i) => el('td', { textContent: c, className: i ? 'num' : '' })))); return t;
 }
 function pintarPruebas() {
-  const box = $('pruebas'); box.innerHTML = '';
+  const box = $('pruebas'); box.innerHTML = ''; VARS = variables();
   box.append(el('h2', { textContent: 'Comparar casos' }), el('p', { className: 'hint', textContent: 'Corre el mismo escenario en mejor caso, al azar y peor caso, y 30 veces al azar con distintas semillas.' }),
     el('button', { className: 'primario', textContent: 'Comparar mejor / azar / peor', onclick: comparar }), el('div', { id: 'resComparar' }),
-    el('h2', { textContent: 'Aumento de usuarios', style: 'margin-top:20px' }), el('p', { className: 'hint', textContent: 'Sube la carga paso a paso (el resto del escenario queda igual) y busca el punto donde el sistema se quiebra.' }));
+    el('h2', { textContent: 'Aumento de carga', style: 'margin-top:20px' }), el('p', { className: 'hint', textContent: 'Sube la carga paso a paso (el resto del escenario queda igual) y busca el punto donde el sistema se quiebra.' }));
   const sel = el('select', { id: 'varCrec' }); for (const [k, v] of Object.entries(VARS)) sel.append(el('option', { value: k, textContent: v.etq }));
   box.append(el('div', { className: 'fila' }, sel, el('button', { className: 'primario', textContent: 'Probar aumento', onclick: crecimiento })), el('div', { id: 'resCrecim' }));
   box.append(el('h2', { textContent: 'Análisis con PM4Py', style: 'margin-top:20px' }), el('p', { className: 'hint', textContent: 'Genera el registro de eventos del escenario actual (con el contrato de trazabilidad), lo compara con el BPMN y busca los cuellos de botella. Es el mismo análisis que se hará con los registros reales.' }),
@@ -403,12 +417,12 @@ async function comparar() {
   const sim = (extra) => api.simulate(peticion({ sinMuestras: true, ...extra }));
   try {
     const filas = [];
-    for (const [n, m] of [['Mejor caso', 'mejor'], ['Al azar', 'azar'], ['Peor caso', 'peor']]) { const r = await sim({ modo: m }); filas.push({ r, c: [n, hm(r.ciclo.prom), hm(r.ciclo.p95), hm(r.duracion), String(sist(r).colaMax), String(reproc(r))], cls: m === 'peor' ? 'peor' : m === 'mejor' ? 'mejor' : '' }); }
+    for (const [n, m] of [['Mejor caso', 'mejor'], ['Al azar', 'azar'], ['Peor caso', 'peor']]) { const r = await sim({ modo: m }); filas.push({ r, c: [n, hm(r.ciclo.prom), hm(r.ciclo.p95), hm(r.duracion), String(sist(r).colaMax), ...(UI.reprocesos ? [String(reproc(r))] : [])], cls: m === 'peor' ? 'peor' : m === 'mejor' ? 'mejor' : '' }); }
     const mc = []; for (let i = 0; i < 30; i++) { prog.textContent = `Calculando… corrida al azar ${i + 1} de 30`; mc.push((await sim({ modo: 'azar', semilla: 1000 + i })).ciclo.prom); } mc.sort((a, b) => a - b);
-    prog.remove(); dest.append(tabla(['Caso', 'Medio', 'p95', 'Evento', 'Cola', 'Repr.'], filas));
+    prog.remove(); dest.append(tabla(['Caso', 'Medio', 'p95', 'Total', 'Cola', ...(UI.reprocesos ? ['Repr.'] : [])], filas));
     const q = p => mc[Math.min(mc.length - 1, Math.floor(p * mc.length))];
-    dest.append(el('p', { className: 'hint', style: 'margin-top:8px', textContent: `30 corridas al azar · tiempo medio por evento: mínimo ${hm(mc[0])} · mediana ${hm(q(.5))} · p95 ${hm(q(.95))} · máximo ${hm(mc.at(-1))}.` }));
-    const d = (filas[2].r.ciclo.prom / filas[0].r.ciclo.prom); dest.append(el('p', { className: 'hint', textContent: `El peor caso tarda ${d.toFixed(1)}× el mejor caso. La diferencia son los reprocesos (volver a entregar la base, ajustes de la ronda) y los tiempos lentos de las personas.` }));
+    dest.append(el('p', { className: 'hint', style: 'margin-top:8px', textContent: `30 corridas al azar · tiempo medio por caso: mínimo ${hm(mc[0])} · mediana ${hm(q(.5))} · p95 ${hm(q(.95))} · máximo ${hm(mc.at(-1))}.` }));
+    const d = (filas[2].r.ciclo.prom / filas[0].r.ciclo.prom); dest.append(el('p', { className: 'hint', textContent: `El peor caso tarda ${d.toFixed(1)}× el mejor caso. La diferencia son los reprocesos y los tiempos lentos.` }));
   } catch (e) { prog.textContent = 'No se pudo calcular: ' + e.message; }
 }
 function grafico(f, v) {
@@ -434,8 +448,8 @@ async function crecimiento() {
   try {
     const f = []; for (const x of VARS[v].vals) { prog.textContent = `Calculando… ${VARS[v].etq.toLowerCase()} = ${x.toLocaleString('es')}`; const r = await api.simulate(peticion({ params: { ...S.params, [v]: x }, sinMuestras: true })); const s = sist(r); f.push({ x, prom: r.ciclo.prom, p95: r.ciclo.p95, cola: s.colaMax, sat: s.saturado }); }
     prog.remove(); const { svg, q } = grafico(f, v); dest.append(svg);
-    dest.append(el('p', { className: 'hint', textContent: q > 0 ? `Punto de quiebre: con ${VARS[v].etq.toLowerCase()} = ${f[q].x.toLocaleString('es')} el tiempo medio por evento pasa de ${hm(f[0].prom)} a ${hm(f[q].prom)} y el sistema queda al límite el ${(f[q].sat * 100).toFixed(0)} % del tiempo.` : 'Sin punto de quiebre en este rango: el sistema aguanta toda la prueba con la capacidad actual.' }));
-    dest.append(tabla([VARS[v].etq.split(' ')[0], 'Medio/evento', 'p95', 'Cola máx.', 'Al límite'], f.map((x, i) => ({ c: [x.x.toLocaleString('es'), hm(x.prom), hm(x.p95), String(x.cola), (x.sat * 100).toFixed(0) + ' %'], cls: i === q ? 'peor' : '' }))));
+    dest.append(el('p', { className: 'hint', textContent: q > 0 ? `Punto de quiebre: con ${VARS[v].etq.toLowerCase()} = ${f[q].x.toLocaleString('es')} el tiempo medio por caso pasa de ${hm(f[0].prom)} a ${hm(f[q].prom)} y el recurso de referencia queda al límite el ${(f[q].sat * 100).toFixed(0)} % del tiempo.` : 'Sin punto de quiebre en este rango: el sistema aguanta toda la prueba con la capacidad actual.' }));
+    dest.append(tabla([VARS[v].etq.split(' ')[0], 'Medio/caso', 'p95', 'Cola máx.', 'Al límite'], f.map((x, i) => ({ c: [x.x.toLocaleString('es'), hm(x.prom), hm(x.p95), String(x.cola), (x.sat * 100).toFixed(0) + ' %'], cls: i === q ? 'peor' : '' }))));
   } catch (e) { prog.textContent = 'No se pudo calcular: ' + e.message; }
 }
 
@@ -460,7 +474,7 @@ async function exportarXes() {
 
 // ---------- archivos: .bpmn y escenario ----------
 const descargar = (txt, nombre, tipo) => { const a = el('a', { href: URL.createObjectURL(new Blob([txt], { type: tipo })), download: nombre }); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
-$('btnBpmn').onclick = () => descargar(S.xml, S.xmlUsuario ? 'importado.bpmn' : `bpmn_to-be_sorteo_v3${S.vista === 'plana' ? '' : '_subprocesos'}.bpmn`, 'application/xml');
+$('btnBpmn').onclick = () => descargar(S.xml, S.xmlUsuario ? 'importado.bpmn' : `${MODELO}${S.vista === 'plana' ? '' : '_subprocesos'}.bpmn`, 'application/xml');
 $('fileBpmn').onchange = async e => {
   const f = e.target.files[0]; if (!f) return; e.target.value = '';
   try { const txt = await f.text(); if (!/BPMNDiagram/.test(txt)) throw new Error('el archivo no trae el dibujo del diagrama; ábrelo en Camunda Modeler y guárdalo de nuevo'); await parseModel(txt);
@@ -468,14 +482,14 @@ $('fileBpmn').onchange = async e => {
     aviso(sin ? `Importado. ${sin} pasos no tienen tiempos en el escenario: se simulan instantáneos hasta que se los asignes (clic en el paso).` : 'Importado. Todos los pasos tienen datos en el escenario.', 9000);
   } catch (x) { alert('No pude importar el .bpmn: ' + x.message); }
 };
-$('btnEscExport').onclick = () => { const o = clone(S.sc); for (const [k, v] of Object.entries(S.params)) o.params[k].valor = v; descargar(JSON.stringify(o, null, 2), 'escenario_sorteo.json', 'application/json'); };
+$('btnEscExport').onclick = () => { const o = clone(S.sc); for (const [k, v] of Object.entries(S.params)) o.params[k].valor = v; descargar(JSON.stringify(o, null, 2), `escenario_${MODELO}.json`, 'application/json'); };
 $('fileEsc').onchange = async e => { const f = e.target.files[0]; if (!f) return; e.target.value = ''; try { S.base = JSON.parse(await f.text()); localStorage.removeItem(KEY); S.sc = null; await abrir(); } catch (x) { alert('No pude leer el escenario: ' + x.message); } };
 $('btnReset').onclick = () => { localStorage.removeItem(KEY); S.sc = null; S.xmlUsuario = null; S.base = BASE; S.forzar = {}; S.modo = 'azar'; S.perfil = 'uniforme'; S.semilla = 7; abrir('plana'); };
 
 // ---------- arranque (con enlaces directos para pruebas) ----------
 const q = new URLSearchParams(location.search);
 (async function iniciar() {
-  try { const h = await api.health(); const p = await api.project(); XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; document.title = `${p.nombre} · Simulador de sorteos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
+  try { const h = await api.health(); const p = await api.project(); XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; MODELO = p.modelo; UI = p.ui || {}; KEY = 'simv2:' + MODELO; document.title = `${p.nombre} · Simulador de procesos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
   catch (e) { document.body.innerHTML = `<div style="padding:40px;font:15px system-ui;max-width:640px"><h2>No hay conexión con el motor del simulador</h2><p>${e.message}</p><p>Inícialo con <code>sim-template/run.sh</code> y abre <code>http://127.0.0.1:8099</code> (no abras el archivo index.html directamente).</p></div>`; return; }
   await abrir(q.get('vista') === 'sub' ? 'subprocesos' : 'plana');
   for (const [k, v] of q) if (k in S.sc.params) S.params[k] = Number(v);

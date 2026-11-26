@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Simulador de sorteos · Token Simulation</title>
+<title>Simulador de procesos · Token Simulation</title>
 <link rel="stylesheet" href="assets/diagram-js.css"><link rel="stylesheet" href="assets/bpmn-js.css"><link rel="stylesheet" href="app.css">
 </head><body>
 <header>
-  <div class="marca"><i></i><div><h1><span id="nombreArchivo">sorteo_v3.bpmn</span> <em>Token Simulation</em></h1><small id="motor">conectando con el motor…</small></div></div>
-  <div class="grupo"><div class="seg"><button id="modoAnalisis" class="on" title="Corre todo el evento y lo reproduce">Análisis</button><button id="modoVivo" title="Simulación en tiempo real: inyecta sorteos, fuerza caminos">En vivo</button></div>
+  <div class="marca"><i></i><div><h1><span id="nombreArchivo">modelo.bpmn</span> <em>Token Simulation</em></h1><small id="motor">conectando con el motor…</small></div></div>
+  <div class="grupo"><div class="seg"><button id="modoAnalisis" class="on" title="Corre todo el escenario y lo reproduce">Análisis</button><button id="modoVivo" title="Simulación en tiempo real: inyecta casos, fuerza caminos">En vivo</button></div>
     <div class="seg"><button id="vistaPlana" class="on" title="Todo el proceso con carriles">Completa</button><button id="vistaSub" title="Agrupado en subprocesos que se abren">Subprocesos</button></div></div>
   <span class="sp"></span>
   <div class="grupo">
     <button id="play" class="play" title="Reproducir / pausar">▶</button>
     <div class="seg" title="Velocidad: segundos simulados por segundo real"><button data-vel="10">10×</button><button data-vel="60" class="on">60×</button><button data-vel="300">300×</button><button data-vel="1000">1000×</button></div>
-    <button id="btnInyectar" class="azul">＋ Inyectar evento</button><button id="btnRafaga" class="ambar">⚡ Ráfaga +10</button>
+    <button id="btnInyectar" class="azul">＋ Inyectar caso</button><button id="btnRafaga" class="ambar">⚡ Ráfaga +10</button>
   </div>
   <span class="sp"></span>
   <div class="grupo">
@@ -27,7 +27,7 @@
   <aside id="izq">
     <h2>Condiciones de la prueba</h2>
     <div class="f"><label>Flujo</label><select id="modoCaso"></select></div>
-    <div class="f"><label>Cómo llegan los eventos</label><select id="perfil"></select></div>
+    <div class="f"><label>Cómo llegan los casos</label><select id="perfil"></select></div>
     <div class="fila sem"><span>Semilla del azar: <b id="semilla">7</b></span><button id="btnSemilla" title="Otra corrida al azar">🎲 Otra</button></div>
     <h2>Resultado</h2>
     <div id="kpis"></div>

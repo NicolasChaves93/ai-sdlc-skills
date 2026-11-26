@@ -1,0 +1,6 @@
+{
+  "name": "Ejemplo · Solicitud de permiso",
+  "model": "permiso",
+  "process_title": "Solicitud de permiso",
+  "scenario": "scenarios/permiso.json"
+}

@@ -31,7 +31,11 @@ Consult `NOTION_SCHEMA.md` for global database IDs, then **always scope to the a
 
 ### Step 2: Process Optimization (`BPMN As-Is → Simulation & Bottlenecks → BPMN To-Be`)
 - Map the **current operational process (`As-Is`)** in Mermaid (`flowchart TD` with role swimlanes) to expose manual friction and delays.
-- When concurrency or multi-step gateways exist, build a standalone **Interactive BPMN Flow Simulator** (`docs/simulador-bpmn.html`) with live controls for concurrent users, arrival rate, node processing times, and gateway probabilities to spot queue buildup before choosing a tech stack.
+- **Test the flow before any code** with the shared simulator `~/proyectos/ai-sdlc-skills/sim-template` (do not build a one-off HTML simulator):
+  1. The BPMN is drawn in Camunda Modeler (pool, one lane per role, readable element IDs, a single start event) and saved as `<workspace>/models/<model>.bpmn`.
+  2. The workspace is a folder outside the project repo (e.g. `~/proyectos/sim-<project>`); copy the layout of `sim-template/examples/permisos`: `workspace.json` and `scenarios/<model>.json` (times, probabilities, resources keyed by element ID). Mark every value as `negocio` or `supuesto`.
+  3. Optional project indicators go in `workspace.json` → `ui` (see the template README).
+- **Always finish with the visual model running:** start `sim-template/run.sh <workspace> [port]` in the background, check `http://127.0.0.1:<port>/api/project` answers, and give the user that URL so they can test it. Report bottlenecks from the run. The step is not done until the user has the URL; if you cannot keep a server running (non-interactive delegate), hand the exact command to the orchestrator, which must run it.
 - Design the **improved target process (`To-Be`)** showing how the system eliminates those bottlenecks, and keep this BPMN updated whenever downstream phases uncover flow adjustments.
 
 ### Step 3: Formalize Requirements (`RF-NN` / `RNF-NN`) & DMN Business Rules (`BR-NN`)

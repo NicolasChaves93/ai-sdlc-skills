@@ -5,12 +5,26 @@ Decisión y pruebas: **ADR-001** en Notion (PoCs y decisiones). Herramienta pers
 
 ## Uso
 ```
-./run.sh                       # prepara los modelos de ~/proyectos/sim-juegos y arranca http://127.0.0.1:8099
+./run.sh examples/permisos     # ejemplo incluido; abre http://127.0.0.1:8099
+./run.sh                       # por defecto, el espacio de trabajo ~/proyectos/sim-juegos
 ./run.sh ~/proyectos/otro 8100 # otro espacio de trabajo / puerto
-./test.sh                      # 21 pruebas (motor, PM4Py, servidor)
+./test.sh                      # motor, PM4Py, servidor y preparación de modelos
 ```
-Un **espacio de trabajo** (carpeta de proyecto, fuera del repositorio del proyecto) tiene: `workspace.json`, `models/<m>.bpmn` (BPMN de negocio con `cc:carril`),
+Un **espacio de trabajo** (carpeta de proyecto, fuera del repositorio del proyecto) tiene: `workspace.json`, `models/<m>.bpmn` (BPMN de negocio de Camunda Modeler, con carriles),
 `scenarios/<m>.json`, `data/{synthetic,local,production}/`, `reports/`. `prepare.sh` genera `build/` (diagrama plano con carriles reales, por subprocesos y geometría).
+
+### Indicadores propios (opcional, en `workspace.json`)
+```json
+"ui": {
+  "indicadores": [{"titulo": "Aprobadas", "valor": "T_Registrar", "detalle": "de {T_Revisar} revisadas"}],
+  "reprocesos": ["T_Corregir"],
+  "crecimiento": {"N": {"etq": "Solicitudes", "vals": [20, 40, 80, 160]}}
+}
+```
+`valor` y `{...}` son IDs de elementos del BPMN (sumables con `+`).
+
+### Límites actuales de `prepare.sh`
+Un solo proceso con un evento de inicio. El diagrama completo no conserva definiciones de temporizadores ni condiciones.
 
 ## Piezas
 | Carpeta | Qué es |

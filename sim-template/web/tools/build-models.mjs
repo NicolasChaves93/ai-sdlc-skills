@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { layoutProcess } from 'bpmn-auto-layout';
-import { carriles, DC, DD, BPMN, DI, kids, local } from './layout.mjs';
+import { carriles, leerCarriles, DC, DD, BPMN, DI, kids, local } from './layout.mjs';
 
 const model = process.argv[2];
 if (!model) { console.error('uso: node build-models.mjs <modelo>   (desde la carpeta del espacio de trabajo)'); process.exit(1); }
@@ -36,6 +36,7 @@ function scopeXml(doc, scope) {
 const GEO = {};
 for (const f of [model + '.bpmn']) {
   const doc = new DOMParser().parseFromString(fs.readFileSync(path.join(src, f), 'utf8'), 'text/xml');
+  leerCarriles(doc);
   const process = kids(doc.documentElement).find(n => local(n) === 'process');
   const all = scopes(process);
   const subIds = new Set(all.slice(1).map(s => s.getAttribute('id')));

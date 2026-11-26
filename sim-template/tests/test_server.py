@@ -63,7 +63,7 @@ class Api(unittest.TestCase):
         self.assertEqual((code, h["motor"]), (200, "python"))
         code, p = self.call("/api/project")
         self.assertEqual(code, 200)
-        self.assertEqual(set(p), {"nombre", "escenario", "modelos", "carriles"})
+        self.assertEqual(set(p), {"nombre", "escenario", "modelos", "carriles", "modelo", "ui"})
         self.assertIn("plana", p["modelos"])
         code, raw = self.call("/")
         self.assertEqual(code, 200)
