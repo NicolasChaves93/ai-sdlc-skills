@@ -42,6 +42,9 @@ El hook se activa a mano en `~/.claude/settings.json`:
 ## Estándar de diagramas
 Procesos en BPMN (reglas en `sim-template/bpmnlintrc.json`, validación con `sim-template/lint.sh`); los demás UML en draw.io. `setup.sh <proyecto>` deja `.bpmnlintrc` en el proyecto.
 
+## Simulador
+`sim-template/`: [guía de uso](sim-template/README.md) · [referencia técnica](sim-template/TECNICO.md).
+
 ## Compuertas del hook
 
 Estas cuatro piden confirmación.

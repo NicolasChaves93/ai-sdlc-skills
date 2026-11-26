@@ -58,4 +58,5 @@ El traspaso se hace por archivos del proyecto, no por la conversación:
 
 ## 6. Convenciones
 - **Diagramas:** los procesos se entregan en BPMN (`.bpmn`), dibujados a mano con un carril por rol, divididos según cuándo ocurren y numerados por orden y nivel (`1.0_`, `2.0_`, `2.1_`, `2.1.1_`). Deben pasar `~/proyectos/ai-sdlc-skills/sim-template/lint.sh <archivo>` sin errores ni avisos (reglas: `.bpmnlintrc`). Los demás diagramas UML (casos de uso, estados, dominio, secuencia) van en draw.io (`.drawio`).
+- **Simulación:** una sola por proyecto, fuera del repositorio, que conserva esos dibujos (`compose.json`) y permite simular todo o una parte. Cada valor se marca `negocio`, `real` (confirmado por el usuario, con fuente) o `supuesto`; el valor base es la situación real. Cómo armarla: `~/proyectos/ai-sdlc-skills/sim-template/TECNICO.md`; cómo usarla: su `README.md`.
 - Conversación y Notion en **español**; código, ramas, commits y carpetas (`api-<proyecto>`, `app-<proyecto>`, `infra-<proyecto>`) en **inglés**.
