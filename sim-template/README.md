@@ -24,7 +24,8 @@ Un **espacio de trabajo** (carpeta de proyecto, fuera del repositorio del proyec
 `valor` y `{...}` son IDs de elementos del BPMN (sumables con `+`).
 
 ### Límites actuales de `prepare.sh`
-Un solo proceso con un evento de inicio. El diagrama completo no conserva definiciones de temporizadores ni condiciones.
+Un solo proceso con un evento de inicio. Se detiene, nombrando el elemento, si el BPMN usa temporizadores u otros eventos con definición, eventos de borde, repeticiones o multi-instancia, condiciones en las flechas, o tareas de envío, recepción, script, regla o llamada.
+Sin comprobar: que los tiempos de las compuertas paralelas se solapen. El botón de importar de la interfaz no pasa por esta revisión.
 
 ## Piezas
 | Carpeta | Qué es |

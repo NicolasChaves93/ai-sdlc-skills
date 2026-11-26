@@ -35,6 +35,26 @@ class Preparar(unittest.TestCase):
                         out = Simulation(prepare(fh.read()), sc).run().results(False)
                     self.assertEqual(out["ciclo"]["n"], 40)
 
+    def test_no_descarta_en_silencio(self):
+        casos = {"temporizador": ('<bpmn:endEvent id="Fin" name="Respuesta enviada"/>',
+                                  '<bpmn:endEvent id="Fin" name="Respuesta enviada"/><bpmn:intermediateCatchEvent id="Espera" name="Esperar"><bpmn:timerEventDefinition/></bpmn:intermediateCatchEvent>', "Espera"),
+                 "tarea de script": ('<bpmn:serviceTask id="T_Registrar" name="Registrar permiso"/>',
+                                     '<bpmn:scriptTask id="T_Registrar" name="Registrar permiso"/>', "T_Registrar")}
+        for caso, (old, new, ident) in casos.items():
+            with self.subTest(caso), tempfile.TemporaryDirectory() as d:
+                w = os.path.join(d, "ws")
+                shutil.copytree(os.path.join(T, "examples", "permisos"), w, ignore=shutil.ignore_patterns("build"))
+                model = os.path.join(w, "models", "permiso.bpmn")
+                with open(model, encoding="utf-8") as fh:
+                    xml = fh.read()
+                self.assertIn(old, xml)
+                with open(model, "w", encoding="utf-8") as fh:
+                    fh.write(xml.replace(old, new))
+                r = subprocess.run([os.path.join(T, "prepare.sh"), w], capture_output=True, text=True)
+                self.assertNotEqual(r.returncode, 0)
+                self.assertIn(ident, r.stderr)
+                self.assertFalse(os.path.exists(os.path.join(w, "build", "permiso_flat.bpmn")))
+
 
 if __name__ == "__main__":
     unittest.main()
