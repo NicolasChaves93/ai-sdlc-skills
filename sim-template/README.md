@@ -13,6 +13,13 @@ Decisión y pruebas: **ADR-001** en Notion (PoCs y decisiones). Herramienta pers
 Un **espacio de trabajo** (carpeta de proyecto, fuera del repositorio del proyecto) tiene: `workspace.json`, `models/<m>.bpmn` (BPMN de negocio de Camunda Modeler, con carriles),
 `scenarios/<m>.json`, `data/{synthetic,local,production}/`, `reports/`. `prepare.sh` genera `build/` (diagrama plano con carriles reales, por subprocesos y geometría).
 
+### Estándar de diagramas
+Todo diagrama que se entregue a una persona pasa `./lint.sh <diagrama.bpmn>` sin errores ni avisos (`bpmnlint` + reglas Miragon, `bpmnlintrc.json`).
+- Carriles por rol, para ver quién hace cada paso. Por eso `flow-target-alignment` está apagada.
+- Tareas 100×80, rombos 50×50, eventos 36×36. A una tarea se entra por la izquierda y se sale por la derecha.
+- Los caminos que regresan se unen con un rombo antes de la tarea. Cada paso declara `incoming` y `outgoing`.
+- `prepare.sh` redibuja el diagrama para simular: sus archivos de `build/` no son entregables y no se validan.
+
 ### Indicadores propios (opcional, en `workspace.json`)
 ```json
 "ui": {
