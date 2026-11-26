@@ -108,6 +108,14 @@ def api_saved_load(body, ws):
     return saved.load(ws.root, body.get("id"))
 
 
+def api_saved_delete(body, ws):
+    return saved.delete(ws.root, body.get("id"))
+
+
+def api_saved_real(body, ws):
+    return saved.record_real(ws.root, body.get("id"), body.get("minutos") or 0, body.get("nota"))
+
+
 def api_saved_compare(body, ws):
     return saved.compare(ws.root, _with_model(body), LOCK)
 
@@ -188,7 +196,7 @@ def api_export_xes(body, ws):
         return eventlog.to_xes(_build_sim({**body, "sinMuestras": True}).run().log)
 
 
-ROUTES = {"/api/saved/save": api_saved_save, "/api/saved/list": api_saved_list, "/api/saved/load": api_saved_load, "/api/saved/compare": api_saved_compare,
+ROUTES = {"/api/saved/save": api_saved_save, "/api/saved/delete": api_saved_delete, "/api/saved/real": api_saved_real, "/api/saved/list": api_saved_list, "/api/saved/load": api_saved_load, "/api/saved/compare": api_saved_compare,
           "/api/simulate": api_simulate, "/api/explore": api_explore, "/api/live/create": api_live_create, "/api/live/advance": api_live_advance, "/api/live/inject": api_live_inject,
           "/api/live/force": api_live_force, "/api/live/close": api_live_close, "/api/analysis": api_analysis, "/api/export/xes": api_export_xes}
 

@@ -112,7 +112,7 @@ mi-proceso/
 
 `escala` multiplica la duración.
 
-**Rombos:** `prob` (lo no declarado se reparte entre las demás flechas); `tipo: "contador"`, `veces`, `flujo` (repite hasta la N-ésima visita); `caminoMejor`, `caminoPeor`, `repPeor`.
+**Rombos:** `prob` (lo no declarado se reparte entre las demás flechas); `tipo: "contador"`, `veces`, `flujo` (repite hasta la N-ésima visita); `tipo: "exitos"`, `veces`, `prob`, `flujo` (repite hasta juntar N aciertos, p. ej. «buscar 5 ganadores reales»; no lo reemplaces por una probabilidad promedio, exagera la variación); `caminoMejor`, `caminoPeor`, `repPeor`.
 
 ## Piezas
 
@@ -123,7 +123,7 @@ mi-proceso/
 | `web/` | Interfaz `bpmn-js` y herramientas de trazado (`tools/`, Node). `web/build.sh` genera `web/dist`. |
 | `tests/` | `unittest`. |
 
-API: `/api/project[?parte=]`, `/api/simulate`, `/api/explore`, `/api/saved/{save,list,load,compare}`, `/api/live/*`, `/api/analysis`, `/api/export/xes`.
+API: `/api/project[?parte=]`, `/api/simulate`, `/api/explore`, `/api/saved/{save,list,load,compare,real,delete}`, `/api/live/*`, `/api/analysis`, `/api/export/xes`.
 
 ## Reglas del motor
 

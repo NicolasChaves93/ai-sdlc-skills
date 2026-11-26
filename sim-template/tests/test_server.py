@@ -125,6 +125,31 @@ class Api(unittest.TestCase):
         self.assertEqual(self.call("/api/saved/load", {"id": "../../workspace"})[0], 404)
         self.assertEqual(self.call("/api/saved/save", self.sim_body(nombre="  "))[0], 400)
 
+    def test_planeado_lo_real_y_eliminar(self):
+        code, plan = self.call("/api/saved/save", self.sim_body(nombre="por venir", tipo="planeado", fecha_evento="2027-01-15", parte_id=None))
+        self.assertEqual((code, plan["tipo"], plan["fecha_evento"], plan["real"]), (200, "planeado", "2027-01-15", None))
+        self.assertEqual(self.call("/api/saved/real", {"id": plan["id"], "minutos": 0})[0], 400)
+        self.assertEqual(self.call("/api/saved/real", {"id": plan["id"], "minutos": 95, "nota": "n"})[0], 200)
+        row = next(x for x in self.call("/api/saved/list", {})[1]["escenarios"] if x["id"] == plan["id"])
+        self.assertEqual((row["tipo"], row["real"]["duracion_min"]), ("planeado", 95.0))
+        self.assertEqual(self.call("/api/saved/delete", {"id": "../workspace"})[0], 404)
+        self.assertEqual(self.call("/api/saved/delete", {"id": plan["id"]})[0], 200)
+        self.assertNotIn(plan["id"], [x["id"] for x in self.call("/api/saved/list", {})[1]["escenarios"]])
+        self.assertTrue(os.path.exists(os.path.join(self.tmp, "escenarios_guardados", "eliminados", plan["id"] + ".json")))
+
+    def test_los_eliminados_se_borran_a_los_30_dias(self):
+        ids = [self.call("/api/saved/save", self.sim_body(nombre=n, parte_id=None))[1]["id"] for n in ("viejo", "reciente")]
+        trash = os.path.join(self.tmp, "escenarios_guardados", "eliminados")
+        original = os.path.join(self.tmp, "escenarios_guardados", ids[0] + ".json")
+        os.utime(original, (1, 1))                      # guardado hace años: cuenta la fecha en que se elimina, no la de creación
+        for i in ids:
+            self.assertEqual(self.call("/api/saved/delete", {"id": i})[0], 200)
+        self.assertTrue(os.path.exists(os.path.join(trash, ids[0] + ".json")))
+        old = time.time() - 31 * 86400
+        os.utime(os.path.join(trash, ids[0] + ".json"), (old, old))
+        self.call("/api/saved/list", {})
+        self.assertEqual([os.path.exists(os.path.join(trash, i + ".json")) for i in ids], [False, True])
+
     def test_otra_pagina_no_puede_escribir(self):
         req = urllib.request.Request(f"http://127.0.0.1:{self.port}/api/saved/list", data=b"{}", headers={"Origin": "http://ejemplo.invalid"})
         with self.assertRaises(urllib.error.HTTPError) as ctx:

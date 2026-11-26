@@ -27,7 +27,7 @@ const S = { base: null, seqSim: 0, seqCrit: 0, busy: false, vista: 'plana', xml:
 let PARTE_ID = null;
 let PARTE = null;                         // parte que se está simulando (null = todo)
 let KEY = 'simv2';                       // se completa con el nombre del modelo al arrancar
-const firma = () => JSON.stringify([Object.entries(S.base.params).map(([k, d]) => k + '=' + d.valor).sort(), Object.keys(S.base.elementos).sort()]);   // lo guardado solo vale para el escenario con que se guardó
+const firma = () => JSON.stringify([Object.entries(S.base.params).map(([k, d]) => k + '=' + d.valor).sort(), Object.entries(S.base.elementos).map(([k, v]) => k + '=' + JSON.stringify(v)).sort()]);   // lo guardado solo vale para el escenario con que se guardó
 function guardar() { localStorage.setItem(KEY, JSON.stringify({ firma: firma(), params: S.params, elementos: S.sc.elementos, modo: S.modo, perfil: S.perfil, semilla: S.semilla, forzar: S.forzar })); }
 function cargarGuardado() {
   const sc = clone(S.base); const params = {}; for (const [k, d] of Object.entries(sc.params)) params[k] = d.valor;
@@ -375,7 +375,8 @@ function verPaso(id) {
   }
   if (t === 'BoundaryEvent') box.append(editorDur(id, 'Cuándo vence el temporizador', 'dur'));
   if (t === 'ExclusiveGateway' && e.outgoing.length > 1) {
-    if (cfg.tipo === 'contador') { box.append(el('p', { className: 'hint', textContent: 'Esta compuerta repite el camino «' + (S.model.flows[cfg.flujo]?.name || cfg.flujo) + '» el número de veces indicado y luego sigue por el otro.' }), campo(id, 'Número de repeticiones', 'veces')); }
+    if (cfg.tipo === 'exitos') { const f = S.model.flows[cfg.flujo]; box.append(el('p', { className: 'hint', textContent: `Cuenta los aciertos uno por uno: repite el camino «${f?.name || cfg.flujo}» hasta juntar los que se buscan.` }), campo(id, 'Aciertos que se buscan', 'veces'), campo(id, 'Probabilidad de acierto en cada intento (0 a 1)', 'prob')); }
+    else if (cfg.tipo === 'contador') { box.append(el('p', { className: 'hint', textContent: 'Esta compuerta repite el camino «' + (S.model.flows[cfg.flujo]?.name || cfg.flujo) + '» el número de veces indicado y luego sigue por el otro.' }), campo(id, 'Número de repeticiones', 'veces')); }
     else { box.append(el('p', { className: 'hint', textContent: 'Probabilidad de cada camino (0 a 1). Si dejas uno vacío, recibe lo que sobre.' }));
       for (const fid of e.outgoing) { const f = S.model.flows[fid]; box.append(campo(id, `→ ${f.name || ''} ${S.model.els[f.target].name ? '(' + S.model.els[f.target].name + ')' : ''}`.trim(), 'prob.' + fid, { ph: 'resto' })); } }
     const fz = el('select', {}, el('option', { value: '', textContent: 'Automático (según probabilidades o modo)' }));
@@ -616,29 +617,51 @@ const conParte = extra => peticion({ parte_id: PARTE_ID, sinMuestras: true, ...e
 async function pintarGuardados() {
   const box = $('guardados'); box.innerHTML = '';
   const nombre = el('input', { type: 'text', placeholder: 'Ej.: Evento 28/10, se alargó' });
-  const nota = el('textarea', { placeholder: 'Qué pasó, qué querías lograr…' });
+  const nota = el('textarea', { placeholder: 'Qué pasó o qué esperas, qué quieres lograr…' });
+  const tipo = el('select', {}, el('option', { value: 'paso', textContent: 'Algo que ya pasó' }), el('option', { value: 'planeado', textContent: 'Un evento por venir' }));
+  const cuando = el('input', { type: 'date' });
   const boton = el('button', { id: 'btnGuardar', className: 'primario', textContent: 'Guardar lo que está en pantalla' });
   boton.onclick = async () => {
     boton.disabled = true; boton.textContent = 'Guardando…';
-    try { await api.savedSave(conParte({ nombre: nombre.value, nota: nota.value })); aviso('Escenario guardado.', 3000); await pintarGuardados(); }
+    try { await api.savedSave(conParte({ nombre: nombre.value, nota: nota.value, tipo: tipo.value, fecha_evento: cuando.value })); aviso('Escenario guardado.', 3000); await pintarGuardados(); }
     catch (e) { aviso(e.message); boton.disabled = false; boton.textContent = 'Guardar lo que está en pantalla'; }
   };
   const dest = el('div', { id: 'resGuardados' });
-  box.append(el('h2', { textContent: 'Guardar este escenario' }), el('div', { className: 'f' }, el('label', { textContent: 'Nombre' }), nombre), el('div', { className: 'f' }, el('label', { textContent: 'Qué pasó (nota)' }), nota), boton,
+  box.append(el('h2', { textContent: 'Guardar este escenario' }), el('div', { className: 'f' }, el('label', { textContent: 'Nombre' }), nombre), el('div', { className: 'f' }, el('label', { textContent: 'Qué es' }), tipo), el('div', { className: 'f' }, el('label', { textContent: 'Fecha del evento (opcional)' }), cuando), el('div', { className: 'f' }, el('label', { textContent: 'Nota' }), nota), boton,
     el('h2', { textContent: 'Guardados', style: 'margin-top:18px' }), dest);
   const { escenarios } = await api.savedList();
   if (!escenarios.length) dest.append(el('p', { className: 'hint', textContent: 'Todavía no hay ninguno.' }));
   for (const x of escenarios) {
     const res = el('div', {});
+    const plan = x.tipo === 'planeado';
     const cargar = el('button', { textContent: 'Cargar', onclick: () => cargarEscenario(x.id).catch(e => aviso(e.message)) });
     const comparar = el('button', { className: 'comparar', textContent: 'Comparar con lo de ahora' });
     comparar.onclick = async () => {
       res.innerHTML = ''; res.append(el('p', { className: 'hint', textContent: 'Calculando…' }));
       try { pintarComparacion(res, await api.savedCompare(conParte({ id: x.id }))); } catch (e) { res.innerHTML = ''; res.append(el('p', { className: 'hint', textContent: e.message })); }
     };
-    dest.append(el('div', { className: 'card bajo guardado' }, el('b', { textContent: x.nombre }),
-      el('p', { textContent: `${fecha(x.fecha)} · ${x.parte} · mediana ${hm(x.duracion_total.mediana)}` }), ...(x.nota ? [el('p', { textContent: x.nota })] : []),
-      el('div', { className: 'fila' }, cargar, comparar), res));
+    const borrar = el('button', { textContent: 'Eliminar', onclick: async () => {
+      if (!confirm(`¿Eliminar «${x.nombre}»?`)) return;
+      try { await api.savedDelete(x.id); aviso('Eliminado. Se puede recuperar durante 30 días en escenarios_guardados/eliminados.', 6000); await pintarGuardados(); } catch (e) { aviso(e.message); } } });
+    const anotar = el('button', { textContent: x.real ? 'Corregir lo real' : 'Ya ocurrió: anotar duración' });
+    anotar.onclick = () => {
+      res.innerHTML = '';
+      const min = el('input', { type: 'number', min: 1, placeholder: 'minutos', value: x.real?.duracion_min ?? '' }); const obs = el('textarea', { placeholder: 'Qué pasó de distinto…', value: x.real?.nota ?? '' });
+      res.append(el('div', { className: 'f' }, el('label', { textContent: `Cuánto duró de verdad (${x.parte})` }), min), obs,
+        el('button', { className: 'primario', textContent: 'Anotar', onclick: async () => { try { await api.savedReal({ id: x.id, minutos: Number(min.value), nota: obs.value }); await pintarGuardados(); } catch (e) { aviso(e.message); } } }));
+    };
+    const previsto = x.duracion_total; const cuandoEs = x.fecha_evento ? new Date(x.fecha_evento + 'T00:00').toLocaleDateString('es', { dateStyle: 'medium' }) : '';
+    const tarjeta = el('div', { className: 'card bajo guardado' },
+      el('b', { textContent: x.nombre }),
+      el('p', {}, el('span', { className: 'tag ' + (plan ? 'negocio' : 'real'), textContent: plan ? 'por venir' : 'ya pasó' }), ' ' + [cuandoEs, x.parte, 'guardado ' + fecha(x.fecha)].filter(Boolean).join(' · ')),
+      el('p', { textContent: `${plan ? 'Previsto' : 'Simulado'}: ${hm(previsto.mediana * 1)} (de ${hm(previsto.minimo)} a ${hm(previsto.maximo)}; 9 de cada 10 hasta ${hm(previsto.p90)})` }));
+    if (x.nota) tarjeta.append(el('p', { textContent: x.nota }));
+    if (x.real) {
+      const s = x.real.duracion_min * 60; const donde = s < previsto.minimo ? 'menos que el mínimo simulado' : s > previsto.maximo ? 'más que el máximo simulado' : 'dentro del rango simulado';
+      tarjeta.append(el('p', { style: 'font-weight:600', textContent: `Real: ${hm(s)}, ${donde}.` }), ...(x.real.nota ? [el('p', { textContent: x.real.nota })] : []));
+    }
+    tarjeta.append(el('div', { className: 'fila' }, cargar, comparar), el('div', { className: 'fila' }, ...(plan || x.real ? [anotar] : []), borrar), res);
+    dest.append(tarjeta);
   }
 }
 async function cargarEscenario(id) {
@@ -654,13 +677,16 @@ async function cargarEscenario(id) {
 function pintarComparacion(dest, c) {
   dest.innerHTML = '';
   const a = c.antes.duracion_total, b = c.ahora.duracion_total, dif = b.mediana - a.mediana;
+  const rotulo = c.tipo === 'planeado' ? ['Plan', 'En pantalla'] : ['Lo que pasó', 'En pantalla'];
   const igual = Math.abs(dif) < Math.max(1, a.mediana * 0.02);
-  dest.append(el('p', { style: 'font-weight:600', textContent: igual ? 'La duración mediana casi no cambia.' : `La duración mediana ${dif < 0 ? 'baja' : 'sube'} ${hm(Math.abs(dif))} (de ${hm(a.mediana)} a ${hm(b.mediana)}).` }));
+  dest.append(el('p', { style: 'font-weight:600', textContent: igual ? 'La duración mediana casi no cambia.' : `Lo que está en pantalla dura ${hm(Math.abs(dif))} ${dif < 0 ? 'menos' : 'más'} (${hm(a.mediana)} → ${hm(b.mediana)}).` }));
   const filas = [['Mediana', hm(a.mediana), hm(b.mediana)], ['9 de cada 10', hm(a.p90), hm(b.p90)], ['Máximo', hm(a.maximo), hm(b.maximo)],
     ...Object.keys(c.ahora.cola_maxima_por_recurso).map(k => ['Cola: ' + (S.sc.recursos[k]?.nombre.split(' (')[0] || k), String(c.antes.cola_maxima_por_recurso[k] ?? '—'), String(c.ahora.cola_maxima_por_recurso[k])])];
-  const t = tabla(['Resultado', 'Antes', 'Ahora'], filas.map(f => ({ c: f }))); t.classList.add('ajusta'); dest.append(t);
+  const t = tabla(['Resultado', ...rotulo], filas.map(f => ({ c: f }))); t.classList.add('ajusta'); dest.append(t);
   const cambios = [...c.valores_cambiados.map(v => `${v.que}: ${v.antes} → ${v.ahora}`), ...c.pasos_cambiados.map(i => 'Paso ajustado: ' + (S.model.els[i]?.name || i))];
-  dest.append(el('p', { className: 'hint', textContent: cambios.length ? 'Cambiaste: ' + cambios.join(' · ') : 'No cambiaste valores respecto a lo guardado.' }));
+  dest.append(cambios.length ? el('details', {}, el('summary', { textContent: `${cambios.length} diferencias con lo guardado` }), el('ul', { className: 'hint' }, ...cambios.map(x => el('li', { textContent: x }))))
+    : el('p', { className: 'hint', textContent: 'No hay diferencias con lo guardado.' }));
+  if (cambios.length > 8) dest.append(el('p', { className: 'hint', textContent: 'Son muchas diferencias. Para ajustar a partir de este guardado, pulsa primero «Cargar».' }));
   if (c.diagrama_cambio) dest.append(el('p', { className: 'hint', textContent: 'Ojo: el diagrama también cambió desde que se guardó, así que la diferencia no viene solo de tus ajustes.' }));
 }
 

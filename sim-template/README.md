@@ -89,11 +89,18 @@ Clic en la caja, pestaña **Paso**:
 
 Los tiempos van en **segundos**. Para cambiar los pasos o las flechas hay que modificar el dibujo, no el simulador.
 
-## 5. Guardar lo que pasó y ver si se soluciona
+## 5. Guardar escenarios
+
+Hay dos clases y se eligen al guardar:
+- **Algo que ya pasó:** para ajustar y ver si se soluciona.
+- **Un evento por venir:** para saber qué esperar. Cuando ocurra, **Ya ocurrió: anotar duración** muestra lo real junto a lo previsto.
+
+**Eliminar** pide confirmación y lo mueve a `escenarios_guardados/eliminados`. Ahí puedes recuperarlo durante **30 días**; después se borra del todo.
+
 
 1. En **Simular:** elige la parte.
-2. Pon en pantalla lo que ocurrió.
-3. **Guardados** → nombre ("Evento 28/10, se alargó") y una nota → **Guardar**.
+2. Pon en pantalla lo que ocurrió o lo que esperas.
+3. **Guardados** → nombre ("Evento 28/10, se alargó"), qué es y una nota → **Guardar**.
 4. Cuando quieras, **Cargar**.
 5. Cambia lo que propones mejorar.
 6. **Comparar con lo de ahora:** ves antes, después y qué cambiaste.
@@ -121,7 +128,7 @@ El simulador deja los resultados dentro de la carpeta de la simulación. Los dos
 |---|---|
 | `reports/ultimo_resultado.json` | La última prueba que viste y, segundos después, el rango de 30 repeticiones. |
 | `reports/exploracion.json` | Los últimos escenarios aleatorios. |
-| `escenarios_guardados/` | Los que guardaste tú, uno por archivo. Para borrar uno, borra su archivo. |
+| `escenarios_guardados/` | Los que guardaste tú, uno por archivo. |
 
 Pide, por ejemplo:
 > Lee el último resultado y propón mejoras. Separa lo que depende de supuestos y no cambies diagramas sin mi aprobación.

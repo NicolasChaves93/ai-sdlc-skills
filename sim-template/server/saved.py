@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import time
 import unicodedata
 from datetime import datetime
 
@@ -14,6 +15,9 @@ from report import repeat
 
 FOLDER = "escenarios_guardados"
 KEPT = ("modo", "perfil", "semilla", "forzar")
+KINDS = ("paso", "planeado")          # algo que ocurrió, o un evento por venir
+TRASH = "eliminados"
+KEEP_DAYS = 30                        # después, un eliminado se borra del todo
 
 
 def _folder(root):
@@ -57,7 +61,8 @@ def save(root, body, lock):
     ident, n = f"{now:%Y%m%d-%H%M%S}-{slug}", 2
     while f"{ident}.json" in _files(root):
         ident, n = f"{now:%Y%m%d-%H%M%S}-{slug}-{n}", n + 1
-    data = {"id": ident, "nombre": name, "nota": str(body.get("nota") or "").strip(), "fecha": now.isoformat(timespec="seconds"),
+    data = {"id": ident, "tipo": body.get("tipo") if body.get("tipo") in KINDS else "paso", "fecha_evento": str(body.get("fecha_evento") or ""), "real": None,
+            "nombre": name, "nota": str(body.get("nota") or "").strip(), "fecha": now.isoformat(timespec="seconds"),
             "parte_id": body.get("parte_id"), "parte": body.get("parte") or "todo el proceso", "diagrama": _fingerprint(body["xml"]),
             "params": _values(body), "elementos": body["escenario"].get("elementos", {}), **{k: body.get(k) for k in KEPT},
             "resultado": _summary(repeat(body, lock, lambda: False))}
@@ -67,12 +72,29 @@ def save(root, body, lock):
     return data
 
 
+def purge(root, now=None):
+    """Borra del todo lo que lleva más de 30 días eliminado (se cuenta desde que se eliminó)."""
+    trash = os.path.join(_folder(root), TRASH)
+    if not os.path.isdir(trash):
+        return
+    limit = (now or time.time()) - KEEP_DAYS * 86400
+    for f in os.listdir(trash):
+        path = os.path.join(trash, f)
+        try:
+            if f.endswith(".json") and os.path.getmtime(path) < limit:
+                os.remove(path)
+        except OSError:
+            continue
+
+
 def listing(root):
+    purge(root)
     out = []
     for f in _files(root):
         try:
             d = _read(os.path.join(_folder(root), f))
-            out.append({k: d.get(k) for k in ("id", "nombre", "nota", "fecha", "parte", "parte_id")} | {"duracion_total": d["resultado"]["duracion_total"]})
+            out.append({k: d.get(k) for k in ("id", "nombre", "nota", "fecha", "parte", "parte_id", "fecha_evento", "real")}
+                       | {"tipo": d.get("tipo") or "paso", "duracion_total": d["resultado"]["duracion_total"]})
         except (OSError, ValueError, KeyError):
             continue          # un archivo dañado no esconde los demás
     return out
@@ -80,6 +102,29 @@ def listing(root):
 
 def load(root, ident):
     return _find(root, ident)
+
+
+def delete(root, ident):
+    """Pasa a la subcarpeta de eliminados, por si fue sin querer; ahí dura 30 días."""
+    _find(root, ident)
+    os.makedirs(os.path.join(_folder(root), TRASH), exist_ok=True)
+    target = os.path.join(_folder(root), TRASH, f"{ident}.json")
+    os.replace(os.path.join(_folder(root), f"{ident}.json"), target)
+    os.utime(target)                  # la fecha del archivo pasa a ser la de eliminación
+    purge(root)
+    return {"ok": True}
+
+
+def record_real(root, ident, minutes, note=""):
+    """Lo que de verdad duró un escenario planeado (o corregido): se muestra junto a lo previsto."""
+    data = _find(root, ident)
+    minutes = float(minutes)
+    if not 0 < minutes < 100000:
+        raise ValueError("escribe cuántos minutos duró")
+    data["real"] = {"duracion_min": minutes, "nota": str(note or "").strip(), "anotado": datetime.now().astimezone().isoformat(timespec="seconds")}
+    with open(os.path.join(_folder(root), f"{ident}.json"), "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=1)
+    return data
 
 
 def compare(root, body, lock):
@@ -95,5 +140,5 @@ def compare(root, body, lock):
              if {k: v for k, v in elements.get(i, {}).items() if k != "detalle"} != {k: v for k, v in before["elementos"].get(i, {}).items() if k != "detalle"}]
     if (body.get("forzar") or {}) != (before.get("forzar") or {}):
         changed.append({"que": "Caminos forzados", "antes": len(before.get("forzar") or {}), "ahora": len(body.get("forzar") or {})})
-    return {"nombre": before["nombre"], "fecha": before["fecha"], "antes": before["resultado"], "ahora": _summary(repeat(body, lock, lambda: False)),
+    return {"nombre": before["nombre"], "tipo": before.get("tipo") or "paso", "fecha": before["fecha"], "antes": before["resultado"], "ahora": _summary(repeat(body, lock, lambda: False)),
             "valores_cambiados": changed, "pasos_cambiados": steps, "diagrama_cambio": before["diagrama"] != _fingerprint(body["xml"])}

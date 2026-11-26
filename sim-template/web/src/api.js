@@ -18,5 +18,7 @@ export const explore = b => call('POST', '/api/explore', b);
 export const savedSave = b => call('POST', '/api/saved/save', b);
 export const savedList = () => call('POST', '/api/saved/list', {});
 export const savedLoad = id => call('POST', '/api/saved/load', { id });
+export const savedDelete = id => call('POST', '/api/saved/delete', { id });
+export const savedReal = b => call('POST', '/api/saved/real', b);
 export const savedCompare = b => call('POST', '/api/saved/compare', b);
 export const exportXes = b => call('POST', '/api/export/xes', b);
