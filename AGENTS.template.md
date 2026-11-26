@@ -4,11 +4,11 @@ Este proyecto sigue una fábrica de software evolutiva en 7 fases con separació
 
 ## 1. Roles y Orquestación Activa (`agents-registry.yaml`)
 - **Agente Principal (Orquestador): Claude Code (`claude`)** — Recibe las solicitudes, identifica la fase SDLC actual, aplica las compuertas y ejecuta directamente Fases 4–7 (código, TDD, Postman, k6, Docker, operación y cierre).
-- **Agente Especialista Delegado: Gemini CLI (`gemini`)** — Se invoca automáticamente vía `gemini -p "<instrucción>"` cuando la tarea requiere sincronizar Notion MCP, modelar BPMN/DMN, generar simuladores HTML, o redactar ADRs/diagramas C4 (Fases 0–3).
+- **Agente Especialista Delegado: Gemini CLI (`gemini`)** — Se invoca automáticamente vía `gemini -p "<instrucción>"` cuando la tarea requiere sincronizar Notion MCP, modelar BPMN/DMN, probar el flujo en el simulador visual (`sim-template`), o redactar ADRs/diagramas C4 (Fases 0–3).
 
 ## 2. Activación Automática de Skills por Fase
 - **Fase 0 (Ideación y Viabilidad):** `sdlc-ideation-brainstorming`
-- **Fases 1–2 (Negocio Puro: BPMN, Simulador HTML, DMN, UML, Historias):** `sdlc-discovery-analysis`
+- **Fases 1–2 (Negocio Puro: BPMN, simulador visual, DMN, UML, Historias):** `sdlc-discovery-analysis`
 - **Fase 3 (Diseño Técnico: C4, Secuencia, ERD Físico, Stack vs. Infra, ADR):** `sdlc-architecture-design`
 - **Fases 4–5 (Código por Niveles, TDD, QA):** `sdlc-delivery-operations`
 - **Fases 6–7 (Operación en vivo, deploy/freeze 24h, SOP-NN, Cierre y Retrospectiva):** `sdlc-operations-closure`
@@ -30,6 +30,7 @@ Antes de ejecutar cualquier tarea:
 El traspaso se hace por archivos del repositorio, no por la conversación:
 - `docs/specs/`: salida de las Fases 0–3 que se va a construir (historias, reglas `BR-XX`, contratos de API, modelo de datos).
 - `docs/adr/NNNN-titulo.md`: decisiones técnicas, con una línea `- **Estado:** Aceptada | En validación | Descartada`. Git es la fuente de verdad y Notion su espejo.
+- **Prueba del flujo antes de código:** BPMN de Camunda Modeler en `sim-template`. Claude termina levantando el modelo visual (`sim-template/run.sh <espacio-de-trabajo>`) y entrega la URL al usuario.
 - `.sdlc-state.json` en la raíz: `{"level": N}`, el nivel en curso. Solo se sube cuando el usuario cierra el nivel.
 
 ## 4. Compuertas Obligatorias (Zero-Skip Gates)

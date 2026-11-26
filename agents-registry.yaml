@@ -19,7 +19,7 @@ agents:
     cli_command: "gemini -p"
     best_for:
       - "Sincronización directa con las 10 bases de datos de Notion MCP"
-      - "Fase 0 (Ideación) y Fases 1-2 (BPMN As-Is/To-Be, Simulador HTML, DMN, UML, Historias)"
+      - "Fase 0 (Ideación) y Fases 1-2 (BPMN As-Is/To-Be, simulador visual (sim-template), DMN, UML, Historias)"
       - "Fase 3 (C4, ERD Físico, Secuencia, ADRs)"
       - "Auditoría Mermaid de los diagramas de las Fases 0-3"
     phases: [0, 1, 2, 3]
