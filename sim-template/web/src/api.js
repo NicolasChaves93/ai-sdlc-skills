@@ -14,4 +14,9 @@ export const liveInject = (id, n, cada) => call('POST', '/api/live/inject', { id
 export const liveForce = (id, compuerta, flujo) => call('POST', '/api/live/force', { id, compuerta, flujo });
 export const liveClose = id => call('POST', '/api/live/close', { id }).catch(() => { });
 export const analysis = b => call('POST', '/api/analysis', b);
+export const explore = b => call('POST', '/api/explore', b);
+export const savedSave = b => call('POST', '/api/saved/save', b);
+export const savedList = () => call('POST', '/api/saved/list', {});
+export const savedLoad = id => call('POST', '/api/saved/load', { id });
+export const savedCompare = b => call('POST', '/api/saved/compare', b);
 export const exportXes = b => call('POST', '/api/export/xes', b);

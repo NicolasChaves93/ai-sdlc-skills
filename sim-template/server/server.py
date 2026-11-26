@@ -19,7 +19,11 @@ from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "engine"))
+sys.path.insert(0, HERE)
 from simengine import Scenario, Simulation, SimulationTooLong, prepare  # noqa: E402
+from report import Reporter  # noqa: E402
+from explore import explore  # noqa: E402
+import saved  # noqa: E402
 
 LOCK = threading.RLock()
 SESSIONS = {}        # id -> {"sim": Simulation, "t": último uso}
@@ -39,6 +43,7 @@ class Workspace:
         self.root = os.path.abspath(root)
         cfg = json.loads(_read(os.path.join(self.root, "workspace.json")))
         self.cfg = cfg
+        self.reporter = Reporter(self.root, LOCK)
 
     def project(self, part=None):
         """«partes» en workspace.json: subcarpetas con su propio workspace que se pueden simular por separado."""
@@ -71,7 +76,40 @@ def _build_sim(body, live=False, on_move=None):
 
 def api_simulate(body, ws):
     with LOCK:
-        return _build_sim(body).run().results(with_samples=not body.get("sinMuestras"))
+        out = _build_sim(body).run().results(with_samples=not body.get("sinMuestras"))
+    if not body.get("sinMuestras"):          # solo la corrida que se ve en pantalla, no las comparaciones que pide la interfaz
+        ws.reporter.submit(body, out)
+    return out
+
+
+def api_explore(body, ws):
+    if not isinstance(body.get("xml"), str) or not isinstance(body.get("escenario"), dict):
+        raise ValueError("faltan 'xml' (BPMN) o 'escenario'")
+    out = explore(body, LOCK, scenarios=body.get("cuantos", 100), spread=body.get("variacion", 0.5), vary_times=body.get("tiempos", True), goal=body.get("meta"))
+    ws.reporter.save("exploracion.json", {"parte_simulada": body.get("parte") or "todo el proceso", **out})
+    return out
+
+
+def _with_model(body):
+    if not isinstance(body.get("xml"), str) or not isinstance(body.get("escenario"), dict):
+        raise ValueError("faltan 'xml' (BPMN) o 'escenario'")
+    return body
+
+
+def api_saved_save(body, ws):
+    return saved.save(ws.root, _with_model(body), LOCK)
+
+
+def api_saved_list(body, ws):
+    return {"escenarios": saved.listing(ws.root)}
+
+
+def api_saved_load(body, ws):
+    return saved.load(ws.root, body.get("id"))
+
+
+def api_saved_compare(body, ws):
+    return saved.compare(ws.root, _with_model(body), LOCK)
 
 
 def _gc():
@@ -88,7 +126,7 @@ def api_live_create(body, ws):
         sim = _build_sim(body, live=True)
         sim.start()
         sid = uuid.uuid4().hex[:12]
-        SESSIONS[sid] = {"sim": sim, "t": time.time()}
+        SESSIONS[sid] = {"sim": sim, "t": time.time(), "body": body, "informado": False}
         return {"id": sid, "t": sim.env.now}
 
 
@@ -107,6 +145,12 @@ def api_live_advance(body, ws):
         out = {"t": sim.env.now, "activos": sim.active, "pendiente": sim.pending, "snapshot": sim.snapshot(), "movs": sim.drain_moves()[:120]}
         if body.get("completo"):
             out["resultados"] = sim.results(with_samples=False)
+        session = SESSIONS[body["id"]]
+        if not sim.pending and not session["informado"]:          # en vivo se guarda al terminar todos los casos
+            session["informado"] = True
+            ws.reporter.submit(session["body"], sim.results(with_samples=False))
+        elif sim.pending:
+            session["informado"] = False
         return out
 
 
@@ -144,7 +188,8 @@ def api_export_xes(body, ws):
         return eventlog.to_xes(_build_sim({**body, "sinMuestras": True}).run().log)
 
 
-ROUTES = {"/api/simulate": api_simulate, "/api/live/create": api_live_create, "/api/live/advance": api_live_advance, "/api/live/inject": api_live_inject,
+ROUTES = {"/api/saved/save": api_saved_save, "/api/saved/list": api_saved_list, "/api/saved/load": api_saved_load, "/api/saved/compare": api_saved_compare,
+          "/api/simulate": api_simulate, "/api/explore": api_explore, "/api/live/create": api_live_create, "/api/live/advance": api_live_advance, "/api/live/inject": api_live_inject,
           "/api/live/force": api_live_force, "/api/live/close": api_live_close, "/api/analysis": api_analysis, "/api/export/xes": api_export_xes}
 
 
@@ -194,6 +239,9 @@ def make_handler(ws, web_dir, port):
         def do_POST(self):
             if not self._host_ok():
                 return
+            origin = self.headers.get("Origin")
+            if origin and urlparse(origin).netloc not in allowed_hosts:
+                return self._send(403, {"error": "origen no permitido"})
             fn = ROUTES.get(urlparse(self.path).path)
             if not fn:
                 return self._send(404, {"error": "no existe"})

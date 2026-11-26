@@ -24,8 +24,10 @@ const S = { base: null, seqSim: 0, seqCrit: 0, busy: false, vista: 'plana', xml:
   res: null, metrica: 'esperaTotal', sel: null, clock: 0, playing: false, idx: 0, dots: [], lastSample: -1, overl: {}, flowLbl: [], marks: new Set(), cuellos: new Set(),
   live: null, movs: [], vel: 60, ultRefresco: 0, nRefresco: 0 };
 
+let PARTE_ID = null;
+let PARTE = null;                         // parte que se está simulando (null = todo)
 let KEY = 'simv2';                       // se completa con el nombre del modelo al arrancar
-const firma = () => JSON.stringify([Object.keys(S.base.params).sort(), Object.keys(S.base.elementos).sort()]);   // lo guardado solo vale para el escenario con que se guardó
+const firma = () => JSON.stringify([Object.entries(S.base.params).map(([k, d]) => k + '=' + d.valor).sort(), Object.keys(S.base.elementos).sort()]);   // lo guardado solo vale para el escenario con que se guardó
 function guardar() { localStorage.setItem(KEY, JSON.stringify({ firma: firma(), params: S.params, elementos: S.sc.elementos, modo: S.modo, perfil: S.perfil, semilla: S.semilla, forzar: S.forzar })); }
 function cargarGuardado() {
   const sc = clone(S.base); const params = {}; for (const [k, d] of Object.entries(sc.params)) params[k] = d.valor;
@@ -33,7 +35,7 @@ function cargarGuardado() {
   S.sc = sc; S.params = params;
 }
 const opcionesSim = () => ({ modo: S.modo, perfil: S.perfil, semilla: S.semilla, forzar: S.forzar });
-const peticion = (extra = {}) => ({ xml: S.xml, escenario: S.sc, params: S.params, ...opcionesSim(), ...extra });
+const peticion = (extra = {}) => ({ xml: S.xml, parte: PARTE, escenario: S.sc, params: S.params, ...opcionesSim(), ...extra });
 function aviso(txt, ms = 6000) { const a = $('aviso'); a.textContent = txt; a.classList.add('on'); clearTimeout(aviso.t); aviso.t = setTimeout(() => a.classList.remove('on'), ms); }
 
 // ---------- carriles propios (solo en la vista por subprocesos; la vista completa usa carriles BPMN reales) ----------
@@ -85,18 +87,51 @@ function pintarControles() {
 }
 
 // ---------- parámetros globales ----------
+const esProb = d => d.unidad === 'prob.';
+const pct = v => (+(v * 100).toFixed(1)).toLocaleString('es') + ' %';
+function enPalabras(v) {      // 0.3 → «30 % · 3 de cada 10 · a veces»
+  if (v <= 0) return '0 % · nunca';
+  if (v >= 1) return '100 % · siempre';
+  const cada = v >= 0.1 ? `${(+(v * 10).toFixed(1)).toLocaleString('es')} de cada 10` : `${(+(v * 100).toFixed(1)).toLocaleString('es')} de cada 100`;
+  return `${pct(v)} · ${cada} · ${v <= 0.1 ? 'raro' : v < 0.4 ? 'a veces' : v <= 0.7 ? 'cerca de la mitad' : 'casi siempre'}`;
+}
+function leyendaProb() {
+  return el('details', { className: 'ley' }, el('summary', { textContent: '¿Cómo saco una probabilidad (prob.)?' }),
+    el('p', { textContent: 'Probabilidad = veces que pasó ÷ veces que podía pasar. Si en 20 intentos pasó 5 veces: 5 ÷ 20 = 0,25.' }),
+    el('ul', {}, ...['0 → nunca', 'hasta 0,10 → raro', 'de 0,10 a 0,40 → a veces', 'de 0,40 a 0,70 → cerca de la mitad', 'más de 0,70 → casi siempre', '1 → siempre'].map(t => el('li', { textContent: t }))),
+    el('p', { textContent: 'Con pocos datos (menos de unas 20 veces) es solo una aproximación: prueba también un valor más bajo y uno más alto.' }));
+}
 function pintarParams() {
   const box = $('params'); box.innerHTML = '';
+  if (Object.values(S.sc.params).some(esProb)) box.append(leyendaProb());
+  // «grupo» de cada parámetro → secciones plegables, en el orden en que aparecen; la primera abierta
+  const grupos = new Map(); const agrupado = Object.values(S.sc.params).some(d => d.grupo);
+  const destino = d => {
+    if (!agrupado) return box;
+    const nombre = d.grupo || 'Otros';
+    if (!grupos.has(nombre)) {
+      const cambiados = el('span', { className: 'mod' }); const cuenta = el('span', { className: 'n' });
+      const det = el('details', { className: 'grp', open: !grupos.size }, el('summary', {}, el('b', { textContent: nombre }), cambiados, cuenta));
+      grupos.set(nombre, { det, cambiados, cuenta, claves: [] }); box.append(det);
+    }
+    return grupos.get(nombre).det;
+  };
+  const marcar = () => { for (const g of grupos.values()) { const n = g.claves.filter(k => S.params[k] !== S.sc.params[k].valor).length; g.cambiados.textContent = n ? `${n} cambiado${n > 1 ? 's' : ''}` : ''; g.cuenta.textContent = g.claves.length; } };
   for (const [k, d] of Object.entries(S.sc.params)) {
+    const sitio = destino(d); grupos.get(d.grupo || 'Otros')?.claves.push(k);
     const num = el('input', { type: 'number', value: S.params[k], min: d.min, max: d.max, step: d.paso });
     const rng = el('input', { type: 'range', value: S.params[k], min: d.min, max: d.max, step: d.paso });
-    const set = v => { v = Number(v); if (!isFinite(v)) return; S.params[k] = v; num.value = v; rng.value = v; cambio(); };
+    const lectura = esProb(d) ? el('div', { className: 'lee', textContent: enPalabras(S.params[k]) }) : null;
+    const set = v => { v = Number(v); if (!isFinite(v)) return; S.params[k] = v; num.value = v; rng.value = v; if (lectura) lectura.textContent = enPalabras(v); marcar(); cambio(); };
     num.oninput = () => set(num.value); rng.oninput = () => set(rng.value);
-    box.append(el('div', { className: 'prm' },
+    sitio.append(el('div', { className: 'prm' },
       el('div', { className: 'l' }, el('b', { textContent: d.etiqueta }), el('span', { className: 'tag ' + d.origen, textContent: d.origen }), ...(d.br ? [el('span', { className: 'tag br', textContent: d.br })] : [])),
       el('div', { className: 'c' }, rng, num, el('span', { className: 'u', textContent: d.unidad || '' })),
+      ...(lectura ? [lectura, el('div', { className: 'n', textContent: `Admite de ${pct(d.min ?? 0)} a ${pct(d.max ?? 1)}.` })] : []),
+      ...(d.calculo ? [el('div', { className: 'n', textContent: 'Cómo sacarlo: ' + d.calculo })] : []),
       ...(d.nota ? [el('div', { className: 'n', textContent: d.nota })] : [])));
   }
+  marcar();
 }
 
 let tmr = null; function cambio() { guardar(); $('pruebasRes')?.classList.add('viejo'); clearTimeout(tmr); tmr = setTimeout(async () => { if (S.live) iniciarVivo(true); else { await simular(); if (S.sel) verPaso(S.sel); } }, 120); }
@@ -235,9 +270,10 @@ async function pintarCriticos(rapido) {
     el('div', { className: 'hint', style: 'margin:0', textContent: x.n ? `${(x.sh * 100).toFixed(1)} % (${x.n} veces)` : '0 % — nunca ocurre en esta simulación' })));
 
   if (rapido) return;
+  const whatIf = el('div', {}); box.append(whatIf);          // se llena aparte, debajo de las tablas de capacidad
   // qué pasa si cambia la capacidad (se pide al servidor)
   for (const x of Object.values(r.recursos)) {
-    const clave = String(S.sc.recursos[x.id].capacidad).trim(); const prm = S.sc.params[clave]; if (!prm || !usan(x.id).length || (x.saturado === 0 && x.colaMax <= 1)) continue;
+    const clave = String(S.sc.recursos[x.id].capacidad).trim(); const prm = S.sc.params[clave]; if (!prm || !usan(x.id).length || x.colaMax === 0) continue;
     sec(box, `Qué pasa si cambia la capacidad: ${x.nombre.split(' (')[0]}`, 'Misma simulación con distinta capacidad (el resto igual).');
     const tab = el('table', { style: 'width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e0e4ea;border-radius:6px' });
     tab.append(el('tr', { style: 'color:#667;text-align:right' }, ...['Capacidad', 'Cola máx.', 'Cortados', 'Espera acum.'].map((t, i) => el('th', { textContent: t, style: 'padding:4px 6px;font-weight:600;' + (i ? '' : 'text-align:left') }))));
@@ -246,7 +282,43 @@ async function pintarCriticos(rapido) {
       const esp = Object.values(rr.stats).filter(z => esTarea(z.id)).reduce((a, z) => a + z.esperaTotal, 0);
       tab.append(el('tr', { style: 'text-align:right;border-top:1px solid #eef0f4' + (f === 1 ? ';background:#f1f6ff;font-weight:600' : '') }, el('td', { textContent: v + (f === 1 ? ' (actual)' : ''), style: 'padding:4px 6px;text-align:left' }), el('td', { textContent: rr.recursos[x.id].colaMax, style: 'padding:4px 6px' }), el('td', { textContent: cortes(rr), style: 'padding:4px 6px' }), el('td', { textContent: fmt(esp, 's'), style: 'padding:4px 6px' }))); }
     box.append(tab);
+    // sugerencia: la menor cantidad con la que casi desaparece la espera por este recurso
+    const espera = rr => usan(x.id).reduce((a, id) => a + valor(rr.stats[id], 'esperaTotal'), 0);
+    const antes = espera(r); if (antes < 1) continue;
+    let mejor = null;
+    for (let n = S.params[clave] + 1; n <= Math.min(S.params[clave] + 10, prm.max ?? Infinity); n++) {
+      const rr = await api.simulate(peticion({ params: { ...S.params, [clave]: n }, sinMuestras: true })); if (tok !== S.seqCrit) return;
+      mejor = { n, w: espera(rr) }; if (mejor.w <= antes * 0.1) break;
+    }
+    if (mejor && mejor.w < antes * 0.7) box.append(el('div', { className: 'card medio' }, el('b', { textContent: `Sugerencia: subir «${prm.etiqueta}» de ${S.params[clave]} a ${mejor.n}` }),
+      el('p', { textContent: `La espera acumulada por ${x.nombre.split(' (')[0]} bajaría de ${hm(antes)} a ${hm(mejor.w)} con los demás valores iguales.` })));
   }
+  await sugerirReales(box.lastChild === whatIf ? whatIf : box.appendChild(whatIf), tok);
+}
+
+// ---------- datos reales: valores que vale la pena probar (el azar de «Escenarios aleatorios» no los toca) ----------
+function valoresAProbar(d, actual) {
+  const base = d.probar || (esProb(d) ? [actual / 2, actual * 2] : [actual * 2, actual * 5]);
+  return [...new Set(base.map(v => +Math.min(d.max ?? Infinity, Math.max(d.min ?? 0, v)).toPrecision(3)))].filter(v => v !== actual);
+}
+async function sugerirReales(dest, tok) {
+  const reales = Object.entries(S.sc.params).filter(([, d]) => d.origen === 'real'); if (!reales.length) return;
+  const num = v => v.toLocaleString('es');
+  const promedio = async extra => { let t = 0; for (let i = 0; i < 5; i++) { t += (await api.simulate(peticion({ params: { ...S.params, ...extra }, semilla: 1000 + i, sinMuestras: true }))).duracion / 5; if (tok !== S.seqCrit) return null; } return t; };
+  sec(dest, 'Sugerencias para probar datos reales', 'Cambia un solo dato real y deja lo demás igual. Duración promedio de 5 corridas.');
+  const estado = el('p', { className: 'hint', textContent: 'Calculando…' }); dest.append(estado);
+  const hoy = await promedio({}); if (hoy === null) return;
+  for (const [k, d] of reales) {
+    for (const v of valoresAProbar(d, S.params[k])) {
+      const t = await promedio({ [k]: v }); if (t === null) return;
+      const dif = t - hoy; const igual = Math.abs(dif) < Math.max(30, hoy * 0.03);
+      const dice = esProb(d) ? pct(v) : num(v);
+      estado.before(el('div', { className: 'card ' + (igual ? 'bajo' : 'medio') + ' sug' }, el('b', { textContent: `${d.etiqueta}: ${dice}` }),
+        el('p', { textContent: (igual ? 'La duración casi no cambia' : `La duración ${dif < 0 ? 'baja' : 'sube'} ${hm(Math.abs(dif))}`) + ` (de ${hm(hoy)} a ${hm(t)}).` }),
+        el('button', { textContent: 'Probar', onclick: e => { e.stopPropagation(); S.params[k] = v; pintarParams(); cambio(); aviso(`${d.etiqueta}: ${dice}. Con ⟲ vuelves a lo real.`, 4000); } })));
+    }
+  }
+  estado.remove();
 }
 
 function ir(id) {
@@ -257,7 +329,7 @@ function ir(id) {
 }
 
 // ---------- propiedades del paso ----------
-function mostrarTab(t) { for (const b of document.querySelectorAll('.tabs2 button')) b.classList.toggle('on', b.dataset.tab === t); $('crit').hidden = t !== 'crit'; $('paso').hidden = t !== 'paso'; $('pruebas').hidden = t !== 'pruebas'; }
+function mostrarTab(t) { for (const b of document.querySelectorAll('.tabs2 button')) b.classList.toggle('on', b.dataset.tab === t); $('crit').hidden = t !== 'crit'; $('paso').hidden = t !== 'paso'; $('pruebas').hidden = t !== 'pruebas'; $('guardados').hidden = t !== 'guardados'; if (t === 'guardados') pintarGuardados().catch(e => aviso(e.message)); }
 for (const b of document.querySelectorAll('.tabs2 button')) b.onclick = () => mostrarTab(b.dataset.tab);
 const setPath = (o, p, v) => { const a = p.split('.'); let c = o; for (const k of a.slice(0, -1)) c = c[k] ||= {}; if (v === '' || v == null) delete c[a.at(-1)]; else c[a.at(-1)] = v; };
 const getPath = (o, p) => p.split('.').reduce((c, k) => c?.[k], o);
@@ -411,9 +483,49 @@ function pintarPruebas() {
     el('h2', { textContent: 'Aumento de carga', style: 'margin-top:20px' }), el('p', { className: 'hint', textContent: 'Sube la carga paso a paso (el resto del escenario queda igual) y busca el punto donde el sistema se quiebra.' }));
   const sel = el('select', { id: 'varCrec' }); for (const [k, v] of Object.entries(VARS)) sel.append(el('option', { value: k, textContent: v.etq }));
   box.append(el('div', { className: 'fila' }, sel, el('button', { className: 'primario', textContent: 'Probar aumento', onclick: crecimiento })), el('div', { id: 'resCrecim' }));
+  pintarExplorar(box);
   box.append(el('h2', { textContent: 'Análisis con PM4Py', style: 'margin-top:20px' }), el('p', { className: 'hint', textContent: 'Genera el registro de eventos del escenario actual (con el contrato de trazabilidad), lo compara con el BPMN y busca los cuellos de botella. Es el mismo análisis que se hará con los registros reales.' }),
     el('div', { className: 'fila' }, el('button', { className: 'primario', textContent: 'Analizar escenario', onclick: analizar }), el('button', { textContent: '⤓ Registro XES', onclick: exportarXes })), el('div', { id: 'resAnalisis' }));
   box.append(el('div', { id: 'pruebasRes' }));
+}
+// ---------- escenarios aleatorios: cambia solo los supuestos ----------
+function pintarExplorar(box) {
+  const campo = (etq, inp) => el('div', { className: 'f' }, el('label', { textContent: etq }), inp);
+  const cuantos = el('input', { type: 'number', value: 100, min: 10, max: 300 });
+  const variacion = el('select', {}, ...[[0.25, '±25 % del valor actual'], [0.5, '±50 %'], [0.9, '±90 % (muy amplio)']].map(([v, t]) => el('option', { value: v, textContent: t, selected: v === 0.5 })));
+  const tiempos = el('input', { type: 'checkbox', checked: true });
+  const meta = el('input', { type: 'number', min: 1, placeholder: 'opcional' });
+  const dest = el('div', {});
+  const boton = el('button', { id: 'btnExplorar', className: 'primario', textContent: 'Generar escenarios' });
+  boton.onclick = async () => {
+    boton.disabled = true; dest.innerHTML = ''; dest.append(el('p', { className: 'hint', textContent: 'Calculando… puede tardar cerca de un minuto.' }));
+    try { pintarExploracion(dest, await api.explore(peticion({ cuantos: Number(cuantos.value), variacion: Number(variacion.value), tiempos: tiempos.checked, meta: meta.value ? Number(meta.value) * 60 : null }))); }
+    catch (e) { dest.innerHTML = ''; dest.append(el('p', { className: 'hint', textContent: 'No se pudo calcular: ' + e.message })); }
+    boton.disabled = false;
+  };
+  box.append(el('h2', { textContent: 'Escenarios aleatorios', style: 'margin-top:20px' }),
+    el('p', { className: 'hint', textContent: 'Cambia al azar solo los supuestos; lo real y las reglas de negocio quedan fijos. Sirve para ver qué puede pasar y qué haría falta para lograr una meta.' }),
+    campo('Cuántos escenarios', cuantos), campo('Cuánto pueden cambiar', variacion),
+    el('label', { className: 'chk' }, tiempos, ' Variar también el tiempo de cada paso'), campo('Meta: duración máxima (minutos)', meta), boton, dest);
+}
+function aplicarEscenario(x) {
+  S.sc = clone(S.sc); Object.assign(S.params, x.params);
+  for (const [id, f] of Object.entries(x.factores)) { const c = S.sc.elementos[id]; c.escala = c.escala == null ? f : `(${c.escala})*${f}`; }
+  pintarParams(); cambio(); aviso('Escenario aplicado. Con ⟲ vuelves a los valores base.');
+}
+function pintarExploracion(dest, r) {
+  dest.innerHTML = ''; const d = r.duracion; const num = v => Number(v).toLocaleString('es', { maximumFractionDigits: 3 });
+  dest.append(el('p', { style: 'margin-top:10px', textContent: `En ${r.escenarios} escenarios: mínimo ${hm(d.minimo)} · mediana ${hm(d.mediana)} · 9 de cada 10 hasta ${hm(d.p90)} · máximo ${hm(d.maximo)}.` }));
+  if (r.meta) {
+    dest.append(el('div', { className: 'card ' + (r.meta.porcentaje >= 90 ? 'ok' : 'medio') }, el('b', { textContent: `La meta de ${hm(r.meta.duracion_maxima)} se cumple en ${r.meta.cumplen} de ${r.escenarios} (${num(r.meta.porcentaje)} %)` }),
+      el('p', { textContent: r.meta.cumplen ? 'Valores típicos cuando se cumple: ' + r.meta.valores_tipicos_al_cumplir.map(v => `${v.nombre} ${v.nombre.startsWith('Tiempo de') ? '×' : ''}${num(v.valor)}`).join(' · ') : 'Ningún escenario la logra con estos márgenes.' })));
+  }
+  const pesan = tabla(['Supuesto', 'Si es bajo', 'Si es alto'], r.supuestos_que_mas_pesan.map(w => ({ c: [w.nombre, hm(w.duracion_con_bajo), hm(w.duracion_con_alto)] }))); pesan.classList.add('ajusta');
+  dest.append(el('h2', { textContent: 'Supuestos que más pesan', style: 'margin-top:12px' }), pesan);
+  for (const [titulo, lista] of [['Mejores escenarios', r.mejores], ['Peores escenarios', r.peores]]) {
+    dest.append(el('h2', { textContent: titulo, style: 'margin-top:12px' }));
+    lista.forEach((x, i) => dest.append(el('div', { className: 'fila' }, el('span', { textContent: `${i + 1}. ${hm(x.duracion)}` }), el('button', { textContent: 'Aplicar en pantalla', onclick: () => aplicarEscenario(x) }))));
+  }
 }
 async function comparar() {
   const dest = $('resComparar'); dest.innerHTML = ''; const prog = el('p', { className: 'hint', textContent: 'Calculando…' }); dest.append(prog);
@@ -487,7 +599,7 @@ $('fileBpmn').onchange = async e => {
 };
 $('btnEscExport').onclick = () => { const o = clone(S.sc); for (const [k, v] of Object.entries(S.params)) o.params[k].valor = v; descargar(JSON.stringify(o, null, 2), `escenario_${MODELO}.json`, 'application/json'); };
 $('fileEsc').onchange = async e => { const f = e.target.files[0]; if (!f) return; e.target.value = ''; try { S.base = JSON.parse(await f.text()); localStorage.removeItem(KEY); S.sc = null; await abrir(); } catch (x) { alert('No pude leer el escenario: ' + x.message); } };
-$('btnReset').onclick = () => { localStorage.removeItem(KEY); S.sc = null; S.xmlUsuario = null; S.base = BASE; S.forzar = {}; S.modo = 'azar'; S.perfil = 'uniforme'; S.semilla = 7; abrir('plana'); };
+$('btnReset').onclick = () => { localStorage.removeItem(KEY); S.sc = null; S.xmlUsuario = null; S.base = BASE; S.forzar = {}; S.modo = 'azar'; S.perfil = 'uniforme'; S.semilla = 7; abrir(UI.vista === 'subprocesos' ? 'subprocesos' : 'plana'); };
 
 // ---------- partes del proyecto (workspace.json → partes): se elige qué simular ----------
 function pintarPartes(p) {
@@ -497,10 +609,64 @@ function pintarPartes(p) {
   sel.onchange = () => { location.search = sel.value ? '?parte=' + encodeURIComponent(sel.value) : ''; };
 }
 
+// ---------- escenarios guardados: qué pasó, volver a correrlo y comparar ----------
+const fecha = iso => new Date(iso).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' });
+const conParte = extra => peticion({ parte_id: PARTE_ID, sinMuestras: true, ...extra });
+async function pintarGuardados() {
+  const box = $('guardados'); box.innerHTML = '';
+  const nombre = el('input', { type: 'text', placeholder: 'Ej.: Evento 28/10, se alargó' });
+  const nota = el('textarea', { placeholder: 'Qué pasó, qué querías lograr…' });
+  const boton = el('button', { id: 'btnGuardar', className: 'primario', textContent: 'Guardar lo que está en pantalla' });
+  boton.onclick = async () => {
+    boton.disabled = true; boton.textContent = 'Guardando…';
+    try { await api.savedSave(conParte({ nombre: nombre.value, nota: nota.value })); aviso('Escenario guardado.', 3000); await pintarGuardados(); }
+    catch (e) { aviso(e.message); boton.disabled = false; boton.textContent = 'Guardar lo que está en pantalla'; }
+  };
+  const dest = el('div', { id: 'resGuardados' });
+  box.append(el('h2', { textContent: 'Guardar este escenario' }), el('div', { className: 'f' }, el('label', { textContent: 'Nombre' }), nombre), el('div', { className: 'f' }, el('label', { textContent: 'Qué pasó (nota)' }), nota), boton,
+    el('h2', { textContent: 'Guardados', style: 'margin-top:18px' }), dest);
+  const { escenarios } = await api.savedList();
+  if (!escenarios.length) dest.append(el('p', { className: 'hint', textContent: 'Todavía no hay ninguno.' }));
+  for (const x of escenarios) {
+    const res = el('div', {});
+    const cargar = el('button', { textContent: 'Cargar', onclick: () => cargarEscenario(x.id).catch(e => aviso(e.message)) });
+    const comparar = el('button', { className: 'comparar', textContent: 'Comparar con lo de ahora' });
+    comparar.onclick = async () => {
+      res.innerHTML = ''; res.append(el('p', { className: 'hint', textContent: 'Calculando…' }));
+      try { pintarComparacion(res, await api.savedCompare(conParte({ id: x.id }))); } catch (e) { res.innerHTML = ''; res.append(el('p', { className: 'hint', textContent: e.message })); }
+    };
+    dest.append(el('div', { className: 'card bajo guardado' }, el('b', { textContent: x.nombre }),
+      el('p', { textContent: `${fecha(x.fecha)} · ${x.parte} · mediana ${hm(x.duracion_total.mediana)}` }), ...(x.nota ? [el('p', { textContent: x.nota })] : []),
+      el('div', { className: 'fila' }, cargar, comparar), res));
+  }
+}
+async function cargarEscenario(id) {
+  const g = await api.savedLoad(id);
+  if ((g.parte_id || null) !== PARTE_ID) { location.search = new URLSearchParams({ ...(g.parte_id ? { parte: g.parte_id } : {}), cargar: id }).toString(); return; }
+  salirVivo(); const sc = clone(S.base); sc.elementos = clone(g.elementos); S.sc = sc;
+  const faltan = Object.keys(sc.params).filter(k => !(k in g.params));
+  S.params = Object.fromEntries(Object.entries(sc.params).map(([k, d]) => [k, k in g.params ? g.params[k] : d.valor]));
+  S.modo = g.modo || 'azar'; S.perfil = g.perfil || 'uniforme'; S.semilla = g.semilla ?? 7; S.forzar = g.forzar || {};
+  pintarCondiciones(); pintarControles(); pintarParams(); verPaso(null); cambio(); mostrarTab('guardados');
+  aviso(`Cargado «${g.nombre}». Ajusta lo que quieras y usa «Comparar con lo de ahora».` + (faltan.length ? ` ${faltan.length} parámetro(s) nuevos quedaron con su valor base.` : ''), 8000);
+}
+function pintarComparacion(dest, c) {
+  dest.innerHTML = '';
+  const a = c.antes.duracion_total, b = c.ahora.duracion_total, dif = b.mediana - a.mediana;
+  const igual = Math.abs(dif) < Math.max(1, a.mediana * 0.02);
+  dest.append(el('p', { style: 'font-weight:600', textContent: igual ? 'La duración mediana casi no cambia.' : `La duración mediana ${dif < 0 ? 'baja' : 'sube'} ${hm(Math.abs(dif))} (de ${hm(a.mediana)} a ${hm(b.mediana)}).` }));
+  const filas = [['Mediana', hm(a.mediana), hm(b.mediana)], ['9 de cada 10', hm(a.p90), hm(b.p90)], ['Máximo', hm(a.maximo), hm(b.maximo)],
+    ...Object.keys(c.ahora.cola_maxima_por_recurso).map(k => ['Cola: ' + (S.sc.recursos[k]?.nombre.split(' (')[0] || k), String(c.antes.cola_maxima_por_recurso[k] ?? '—'), String(c.ahora.cola_maxima_por_recurso[k])])];
+  const t = tabla(['Resultado', 'Antes', 'Ahora'], filas.map(f => ({ c: f }))); t.classList.add('ajusta'); dest.append(t);
+  const cambios = [...c.valores_cambiados.map(v => `${v.que}: ${v.antes} → ${v.ahora}`), ...c.pasos_cambiados.map(i => 'Paso ajustado: ' + (S.model.els[i]?.name || i))];
+  dest.append(el('p', { className: 'hint', textContent: cambios.length ? 'Cambiaste: ' + cambios.join(' · ') : 'No cambiaste valores respecto a lo guardado.' }));
+  if (c.diagrama_cambio) dest.append(el('p', { className: 'hint', textContent: 'Ojo: el diagrama también cambió desde que se guardó, así que la diferencia no viene solo de tus ajustes.' }));
+}
+
 // ---------- arranque (con enlaces directos para pruebas) ----------
 const q = new URLSearchParams(location.search);
 (async function iniciar() {
-  try { const h = await api.health(); const p = await api.project(q.get('parte')); pintarPartes(p); XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; MODELO = p.modelo; UI = p.ui || {}; KEY = 'simv2:' + MODELO + (p.parte ? ':' + p.parte : ''); document.title = `${p.nombre} · Simulador de procesos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
+  try { const h = await api.health(); const p = await api.project(q.get('parte')); pintarPartes(p); PARTE_ID = p.parte || null; PARTE = p.partes?.find(x => x.id === p.parte)?.nombre || null; XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; MODELO = p.modelo; UI = p.ui || {}; KEY = 'simv2:' + MODELO + (p.parte ? ':' + p.parte : ''); document.title = `${p.nombre} · Simulador de procesos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
   catch (e) { document.body.innerHTML = `<div style="padding:40px;font:15px system-ui;max-width:640px"><h2>No hay conexión con el motor del simulador</h2><p>${e.message}</p><p>Inícialo con <code>sim-template/run.sh</code> y abre <code>http://127.0.0.1:8099</code> (no abras el archivo index.html directamente).</p></div>`; return; }
   await abrir((q.get('vista') || (UI.vista === 'subprocesos' ? 'sub' : '')) === 'sub' ? 'subprocesos' : 'plana');
   for (const [k, v] of q) if (k in S.sc.params) S.params[k] = Number(v);
@@ -513,6 +679,9 @@ const q = new URLSearchParams(location.search);
   if (q.get('tab')) mostrarTab(q.get('tab'));
   if (q.get('correr') === 'comparar') await comparar(); if (q.get('correr') === 'crecimiento') { if (q.get('var')) $('varCrec').value = q.get('var'); await crecimiento(); }
   if (q.get('correr') === 'analisis') await analizar();
+  if (q.get('cargar')) await cargarEscenario(q.get('cargar'));
+  if (q.get('correr') === 'comparar-guardado') { mostrarTab('guardados'); while (!document.querySelector('button.comparar')) await new Promise(r => setTimeout(r, 300)); document.querySelector('button.comparar').click(); }
+  if (q.get('correr') === 'explorar') { $('btnExplorar').click(); while ($('btnExplorar').disabled) await new Promise(r => setTimeout(r, 500)); }
   document.body.dataset.listo = '1';
 })();
 window.__sim = { S, viewer };

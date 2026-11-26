@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -67,6 +68,68 @@ class Api(unittest.TestCase):
         self.assertEqual((code, part["nombre"], part["parte"], len(part["partes"])), (200, "solo una", "una", 1))
         for bad in ("otra", "../..", "partes/una"):
             self.assertEqual(self.call(f"/api/project?parte={bad}")[0], 500, bad)
+
+    def test_informe_se_reemplaza(self):
+        path = os.path.join(self.tmp, "reports", "ultimo_resultado.json")
+
+        def wait_for(seed):
+            for _ in range(600):
+                if os.path.exists(path):
+                    with open(path, encoding="utf-8") as fh:
+                        data = json.load(fh)
+                    if data["condiciones"]["semilla"] == seed and data["repeticiones"]:
+                        return data
+                time.sleep(0.1)
+            self.fail("no se completó el informe")
+
+        for seed in (11, 12):
+            self.assertEqual(self.call("/api/simulate", self.sim_body(semilla=seed, parte="Una parte"))[0], 200)
+            data = wait_for(seed)
+        self.assertEqual([f for f in os.listdir(os.path.dirname(path)) if f.startswith("ultimo")], ["ultimo_resultado.json"])
+        self.assertEqual((data["parte_simulada"], data["repeticiones"]["corridas"]), ("Una parte", 30))
+        self.assertTrue(data["corrida"]["pasos_por_tiempo"] and data["corrida"]["decisiones"] and data["repeticiones"]["caminos"])
+        self.call("/api/simulate", self.sim_body(semilla=99, sinMuestras=True))          # las comparaciones no lo tocan
+        with open(path, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["condiciones"]["semilla"], 12)
+
+    def test_escenarios_aleatorios_no_tocan_lo_real(self):
+        sc = json.loads(json.dumps(self.sc))
+        first, *rest = sc["params"]
+        sc["params"][first]["origen"] = "real"
+        code, out = self.call("/api/explore", self.sim_body(escenario=sc, cuantos=12, meta=10 ** 9))
+        self.assertEqual((code, out["escenarios"], out["meta"]["porcentaje"]), (200, 12, 100.0))
+        self.assertIn(sc["params"][first]["etiqueta"], out["fijos"])
+        for row in out["mejores"] + out["peores"]:
+            self.assertNotIn(first, row["params"])
+            for k, v in row["params"].items():
+                self.assertEqual(sc["params"][k]["origen"], "supuesto")
+                self.assertTrue(sc["params"][k].get("min", v) <= v <= sc["params"][k].get("max", v), (k, v))
+        self.assertTrue(out["duracion"]["minimo"] <= out["duracion"]["maximo"])
+        with open(os.path.join(self.tmp, "reports", "exploracion.json"), encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["escenarios"], 12)
+
+    def test_escenarios_guardados(self):
+        body = self.sim_body(nombre="Evento 28/10: se alargó", nota="prueba", parte_id=None)
+        code, first = self.call("/api/saved/save", body)
+        self.assertEqual(code, 200, first)
+        self.assertRegex(first["id"], r"^\d{8}-\d{6}-evento-28-10-se-alargo$")
+        code, out = self.call("/api/saved/list", {})
+        self.assertIn(first["id"], [x["id"] for x in out["escenarios"]])
+        code, again = self.call("/api/saved/load", {"id": first["id"]})
+        self.assertEqual((again["nota"], again["params"]), ("prueba", first["params"]))
+        code, same = self.call("/api/saved/compare", self.sim_body(id=first["id"], parte_id=None))
+        self.assertEqual((same["antes"], same["valores_cambiados"], same["pasos_cambiados"]), (same["ahora"], [], []))
+        code, other = self.call("/api/saved/compare", self.sim_body(id=first["id"], parte_id=None, params={"K": 1, "RONDAS": 2}))
+        self.assertTrue(other["valores_cambiados"])
+        self.assertEqual(self.call("/api/saved/compare", self.sim_body(id=first["id"], parte_id="otra"))[0], 400)
+        self.assertEqual(self.call("/api/saved/load", {"id": "../../workspace"})[0], 404)
+        self.assertEqual(self.call("/api/saved/save", self.sim_body(nombre="  "))[0], 400)
+
+    def test_otra_pagina_no_puede_escribir(self):
+        req = urllib.request.Request(f"http://127.0.0.1:{self.port}/api/saved/list", data=b"{}", headers={"Origin": "http://ejemplo.invalid"})
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req)
+        self.assertEqual(ctx.exception.code, 403)
 
     def sim_body(self, **kw):
         return {"xml": self.xml, "escenario": self.sc, "params": {"K": 3, "RONDAS": 2}, **kw}
