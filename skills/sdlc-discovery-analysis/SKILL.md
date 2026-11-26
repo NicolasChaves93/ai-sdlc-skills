@@ -24,6 +24,9 @@ Consult `NOTION_SCHEMA.md` for global database IDs, then **always scope to the a
 3. **Epic Sizing:** Group 3 to 8 related `Historias` per `Épica`.
 4. **100% Tech-Stack Agnostic:** Keep all Phase 1–2 diagrams, requirements, business rules, DMN tables, and conceptual models completely free of programming languages, frameworks, HTTP endpoints, or SQL data types.
 
+## Document version control (mandatory)
+Every project document a person reads or approves starts with the table `Versión | Fecha | Qué cambió | Quién | Aprobado por`. When you change its content, add a row and update the `Versión` property (minor for adjustments, major when scope or a business rule changes). Leave `Aprobado por` as `Pendiente` until the user approves that version. If a document has no table yet, add it with only the history you can verify.
+
 ## Workflow
 
 ### Step 1: Audit Active Project & Phase Gate

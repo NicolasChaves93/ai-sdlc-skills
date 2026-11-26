@@ -61,7 +61,7 @@ Opciones de `Módulo` (cambian por proyecto, verifica antes de usar): Sorteo · 
 - `Documento` (título); `Estado` (select): Borrador · En revisión · Aprobado; `Fase` (select)
 - `Tipo de documento` (select): Formal (PT) · Acta de constitución · Propuesta técnica · Levantamiento de requisitos · Diagrama ER · Arquitectura · Flujo / Secuencia · Prototipo / Mockups · Plan Scrum / Sprint · Presupuesto · Reunión con cliente · Acta de ajustes · Sprint Review / Retro · Otro
 - `Plantilla` (select): PT-PP · Planteamiento del problema; PT-ERS · Especificación de requisitos; PT-ECU · Casos de uso; PT-IGS · Informe general del sistema; PT-PS · Prototipado; Propuesta técnica; Otro
-- Texto: `Versión`, `Participantes`, `Responsable elaboración`, `Responsable aprobación`. Fecha: `Fecha`, `Fecha aprobación`
+- Texto: `Versión`, `Participantes`, `Responsable elaboración`, `Responsable aprobación`. Fecha: `Fecha`, `Fecha aprobación`. `Versión` coincide con la última fila de la tabla de control de versiones del documento
 - Relación: `Proyecto`, `Historias relacionadas`, `Evento`
 
 ### PoCs y decisiones
