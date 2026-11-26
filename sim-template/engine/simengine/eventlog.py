@@ -49,13 +49,52 @@ def id_labelled_copy(xml):
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+def without_subprocesses(xml):
+    """Copia con los subprocesos abiertos: el conversor a red de Petri de PM4Py no une flechas que entran o salen de ellos.
+    El inicio interno pasa a ser un paso de entrada y todos los finales internos se juntan en un paso de salida."""
+    root = ET.fromstring(xml.encode("utf-8") if isinstance(xml, str) else xml)
+    proc = root.find(BPMN + "process")
+
+    def gateway(ident):
+        return ET.SubElement(proc, BPMN + "exclusiveGateway", {"id": ident})
+
+    def link(source, target):
+        ET.SubElement(proc, BPMN + "sequenceFlow", {"id": f"abrir_{source}_{target}", "sourceRef": source, "targetRef": target})
+
+    while (box := proc.find(BPMN + "subProcess")) is not None:      # los anidados suben un nivel y se abren en otra vuelta
+        proc.remove(box)
+        sid = box.get("id")
+        entry, leave = f"entra_{sid}", f"sale_{sid}"
+        gateway(entry)
+        gateway(leave)
+        for f in proc.findall(BPMN + "sequenceFlow"):
+            if f.get("targetRef") == sid:
+                f.set("targetRef", entry)
+            if f.get("sourceRef") == sid:
+                f.set("sourceRef", leave)
+        for child in list(box):
+            if child.tag == BPMN + "laneSet":
+                continue
+            if child.tag in (BPMN + "startEvent", BPMN + "endEvent"):
+                start = child.tag == BPMN + "startEvent"
+                gateway(child.get("id"))
+                link(*((entry, child.get("id")) if start else (child.get("id"), leave)))
+            elif child.get("id") is not None:
+                proc.append(child)
+    for lanes in proc.findall(BPMN + "laneSet"):
+        proc.remove(lanes)
+    for diagram in [e for e in root if e.tag.endswith("}BPMNDiagram")]:
+        root.remove(diagram)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
 def analyze(log, flat_xml, top=5):
-    """Conformidad contra el BPMN (token replay) y cuellos de botella leídos del registro. `flat_xml`: BPMN sin subprocesos."""
+    """Conformidad contra el BPMN (token replay) y cuellos de botella leídos del registro. Si el BPMN trae subprocesos, se abren antes de convertirlo."""
     pd, pm = _pm4py()
     df = frame(log)
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "model.bpmn")
-        open(path, "wb").write(id_labelled_copy(flat_xml))
+        open(path, "wb").write(id_labelled_copy(without_subprocesses(flat_xml)))
         net, im, fm = pm.convert_to_petri_net(pm.read_bpmn(path))
     comp = df[df[LC] == "complete"]
     fit = pm.fitness_token_based_replay(comp, net, im, fm, activity_key=ACT, case_id_key=CASE, timestamp_key=TS)
