@@ -52,7 +52,7 @@ No hook can check Notion, so this step is a manual gate: a level is not closed u
 2. **Reconcile records** (Spanish values, existing property names; inspect the schema first, never invent a property):
    - `HU-NN`/`TEC-NN`/`SOP-NN` of the level → `Hecho`, or moved to a named next `Iteración` with the user's agreement.
    - `Casos de prueba` of the level → result status matching the last real run; no result is marked passed without evidence from this closure.
-   - ADRs in `PoCs y decisiones` touched by the level → status current (`Aprobado`, or superseded with a link to the new one).
+   - ADRs touched by the level → `docs/adr/` is the source of truth; mirror its `Estado` to `PoCs y decisiones` (`En validación`, `Aceptada`, `Descartada`), linking any ADR that supersedes it.
 3. **Write the closure documents** in `Documentos`: Sprint Review with the evidence (test counts, Postman, k6 thresholds) and Lessons Learned. Link them to the `Iteración`. Validate Mermaid before setting `Aprobado`; otherwise leave `Borrador`.
 4. **Move the phase last.** Only after steps 1–3 pass, set the `Proyecto` phase (`7 Cierre`, or the next phase for a continuing project) and the level/iteration status.
 5. **Verify by re-reading.** Re-query the same records and confirm the writes landed; a write call returning without error is not proof.

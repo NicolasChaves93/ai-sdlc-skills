@@ -51,12 +51,49 @@ class AdrGate(GateTest):
         self.assertEqual(self.write("app-y/src/a.py", "Edit"), "allow")
 
     def test_adr_present_allowed(self):
-        (self.root / "docs/adr/0001.md").write_text("# adr")
+        (self.root / "docs/adr/0001.md").write_text("- **Estado:** Aceptada")
         self.assertEqual(self.write("api-x/main.py"), "allow")
+
+    def test_unaccepted_adr_asks(self):
+        for text in ("# adr", "- **Estado:** En validación", "Estado: Descartada"):
+            (self.root / "docs/adr/0001.md").write_text(text)
+            with self.subTest(text): self.assertEqual(self.write("api-x/main.py"), "ask")
 
     def test_outside_project_allowed(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_hook("Write", d, file_path=f"{d}/api-z/m.py"), "allow")
+
+
+class Levels(GateTest):
+    HTTP = "api-x/src/p/adapters/inbound/http/r.py"
+    SQLITE = "api-x/src/p/adapters/outbound/sqlite/r.py"
+    PG = "api-x/src/p/adapters/outbound/postgres/r.py"
+    UI = "app-y/src/b.py"
+
+    def setUp(self):
+        super().setUp()
+        (self.root / "docs/adr/0001.md").write_text("Estado: Aceptada")  # isolate from the ADR gate
+
+    def level(self, text):
+        (self.root / ".sdlc-state.json").write_text(text)
+
+    def test_later_levels_ask(self):
+        self.level('{"level": 2}')
+        for rel in (self.SQLITE, self.PG, self.UI):
+            with self.subTest(rel): self.assertEqual(self.write(rel), "ask")
+        for rel in (self.HTTP, "api-x/src/p/domain/rule.py", "app-y/README.md"):
+            with self.subTest(rel): self.assertEqual(self.write(rel), "allow")
+
+    def test_reached_level_allowed(self):
+        self.level('{"level": 3}')
+        self.assertEqual(self.write(self.SQLITE), "allow")
+        self.assertEqual(self.write(self.PG), "ask")
+
+    def test_missing_or_broken_state_allows(self):
+        self.assertEqual(self.write(self.PG), "allow")
+        for text in ("garbage", "{}", "[]", '{"level": null}'):
+            self.level(text)
+            with self.subTest(text): self.assertEqual(self.write(self.PG), "allow")
 
 
 class PureBusiness(GateTest):
@@ -117,7 +154,7 @@ class Freeze(GateTest):
         self.assertEqual(self.bash("python3 -c 'import os;os.system(\"git push\")'"), "ask")
 
     def test_migration_file_asks_only_in_freeze(self):
-        (self.root / "docs/adr/0001.md").write_text("# adr")  # isolate from the ADR gate
+        (self.root / "docs/adr/0001.md").write_text("Estado: Aceptada")  # isolate from the ADR gate
         self.assertEqual(self.write("api-x/migrations/001.sql"), "allow")
         self.freeze(f"event_start: {iso(hours=5)}\n")
         self.assertEqual(self.write("api-x/migrations/001.sql"), "ask")

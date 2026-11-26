@@ -2,12 +2,15 @@
 """PreToolUse hook enforcing two SDLC gates from AGENTS.md (Zero-Skip Gates).
 
 1. ADR before code: creating a NEW file in api-*/app-*/infra-* that has no code
-   yet, and no ADR in <project>/docs/adr/, asks for confirmation.
+   yet, and no accepted ADR in <project>/docs/adr/, asks for confirmation.
 2. Pure business before technology: writing frameworks, endpoints or SQL types into
    business artifacts (RF/RNF, BPMN, DMN/BR-XX, use cases, state machines, stories)
    asks for confirmation. Only the text being written is scanned, never the rest of the file.
 3. 24h freeze: if <project>/.sdlc-freeze says a live event is within 24h
    (or running), deploy/migration commands and migration files ask for confirmation.
+
+4. Levels in order: <project>/.sdlc-state.json ({"level": 2}) says the current level;
+   writing code that belongs to a later level asks for confirmation. No file, no check.
 
 Decision is always "ask" (never silent deny): Notion ADRs can't be checked from
 here, and the freeze may be lifted only with explicit user confirmation.
@@ -48,6 +51,17 @@ TECH_RE = re.compile(
     r"Next\.js|Svelte|Hibernate|SQLAlchemy|Prisma|PostgreSQL|Postgres|MySQL|MongoDB|SQLite|Redis|Kafka|"
     r"RabbitMQ|Docker|Kubernetes|GraphQL|JWT|ORM|VARCHAR|NVARCHAR|BIGINT|SMALLINT|TIMESTAMPTZ|JSONB|BYTEA|SERIAL)\b"
     r"|\b(?:GET|POST|PUT|PATCH|DELETE)\s+/\S*|(?<![\w.])/api/\S*|\bINT\(\d+\)")
+
+# Accepted ADR: a line such as "- **Estado:** Aceptada".
+ADR_OK_RE = re.compile(r"^[\s>*-]*(Estado|Status)\**\s*:\**\s*(Aceptad[oa]|Aprobad[oa]|Accepted|Approved)\b",
+                       re.I | re.M)
+# (minimum level, path inside the project) as defined by ADR-03 / AGENTS.md levels.
+LEVEL_PATHS = [
+    (2, re.compile(r"(^|/)api-[^/]+/(.*/)?adapters/inbound/(http|websocket)/")),
+    (3, re.compile(r"(^|/)api-[^/]+/(.*/)?adapters/outbound/sqlite/")),
+    (4, re.compile(r"(^|/)api-[^/]+/(.*/)?adapters/outbound/(postgres|redis)/")),
+    (5, re.compile(r"(^|/)app-[^/]+/")),
+]
 
 
 def ask(reason):
@@ -122,9 +136,9 @@ def check_adr(root, path):
     if has_code(code_dir):
         return  # already scaffolded: gate was passed earlier
     for adr in (root / "docs" / "adr", code_dir / "docs" / "adr"):
-        if adr.is_dir() and any(adr.glob("*.md")):
+        if adr.is_dir() and any(ADR_OK_RE.search(f.read_text(errors="ignore")) for f in adr.glob("*.md")):
             return
-    ask(f"Compuerta 'ADR aprobado antes de código': {code_dir.name} aún no tiene código ni docs/adr/*.md. "
+    ask(f"Compuerta 'ADR aprobado antes de código': {code_dir.name} aún no tiene código ni un ADR aceptado en docs/adr/. "
         "Confirma que el ADR de stack está aprobado en Notion (PoCs y decisiones) antes de crear código.")
 
 
@@ -140,6 +154,20 @@ def is_business_artifact(root, path):
     return (path.suffix.lower() in BUSINESS_EXT
             or any(x.lower() in BUSINESS_DIRS for x in parts[:-1])
             or bool(BUSINESS_NAME_RE.match(path.name)))
+
+
+def check_level(root, path):
+    try:
+        rel = path.resolve().relative_to(root).as_posix()
+        level = int(json.loads((root / ".sdlc-state.json").read_text())["level"])
+    except (ValueError, KeyError, TypeError, OSError):
+        return
+    if path.suffix not in CODE_EXT:
+        return
+    for needed, pattern in LEVEL_PATHS:
+        if level < needed and pattern.search(rel):
+            ask(f"Compuerta 'Niveles evolutivos': {rel} es de Nivel {needed} y el proyecto está en Nivel {level} "
+                "(.sdlc-state.json). Cierra el nivel actual antes de avanzar.")
 
 
 def written_text(tool, inp):
@@ -180,6 +208,7 @@ def main():
         if not root:
             return
         check_adr(root, path)
+        check_level(root, path)
         check_business(root, path, written_text(tool, inp))
         fr = freeze_state(root, now)
         if fr and MIGRATION_RE.search(str(path).replace(os.sep, "/")):

@@ -26,9 +26,15 @@ Antes de ejecutar cualquier tarea:
    `gemini -p "Usa <skill_correspondiente>. <contexto_y_tarea_detallada>"`
    y presenta el resultado consolidado al usuario.
 
+### Contrato de traspaso entre fases (Gemini → Claude)
+El traspaso se hace por archivos del repositorio, no por la conversación:
+- `docs/specs/`: salida de las Fases 0–3 que se va a construir (historias, reglas `BR-XX`, contratos de API, modelo de datos).
+- `docs/adr/NNNN-titulo.md`: decisiones técnicas, con una línea `- **Estado:** Aceptada | En validación | Descartada`. Git es la fuente de verdad y Notion su espejo.
+- `.sdlc-state.json` en la raíz: `{"level": N}`, el nivel en curso. Solo se sube cuando el usuario cierra el nivel.
+
 ## 4. Compuertas Obligatorias (Zero-Skip Gates)
 1. **Negocio Puro antes de Tecnología:** Prohibido mencionar frameworks, endpoints o tipos SQL en `RF`/`RNF`, tablas DMN (`BR-XX`), casos de uso, máquinas de estado o BPMN. Si cambia el flujo en construcción, actualizar primero el BPMN `To-Be` y las tablas DMN.
-2. **ADR Aprobado antes de Código:** Prohibido crear carpetas de código o instalar dependencias sin un ADR aprobado en Notion / `docs/adr/`.
+2. **ADR Aprobado antes de Código:** Prohibido crear carpetas de código o instalar dependencias sin un ADR aceptado en `docs/adr/`.
 3. **Niveles Evolutivos:** `Nivel 1 (Núcleo Puro)` → `Nivel 2 (API Memoria + Postman)` → `Nivel 3 (SQLite)` → `Nivel 4 (PostgreSQL + k6)` → `Nivel 5 (Frontend)`.
 4. **Corte y Freeze 24h:** Sincronizar estado en Notion al cerrar cada nivel y respetar congelamiento de despliegues 24h antes de eventos en vivo.
 

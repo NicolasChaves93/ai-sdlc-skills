@@ -9,7 +9,7 @@ Guide execution from code implementation (`4 Construcción`) through QA (`5 Entr
 ## Mandatory Pre-Implementation Gate (Stop Before Writing Any Code!)
 
 Before creating directories, boilerplate, or source code files:
-1. **Verify Phase 3 (`sdlc-architecture-design`) Completion:** Check Notion (`PoCs y decisiones` for an approved Stack ADR) and the local repository (`docs/adr/` or existing project files).
+1. **Verify Phase 3 (`sdlc-architecture-design`) Completion:** Check the local repository for an accepted Stack ADR (`docs/adr/`); if there is none, check Notion (`PoCs y decisiones`) and copy the accepted one into `docs/adr/`.
 2. **If no Stack ADR / language decision exists yet:** **STOP immediately.** Do NOT guess a language (Python, Go, Java, .NET, JS/TS) and do NOT scaffold files. Instead, trigger **`sdlc-architecture-design`** first (running the Greenfield vs. `v1` diagnostic questions, evaluating Stack vs. Free-Tier/Hosting limits, and getting explicit user approval on the language and 5-level evolutionary plan).
 
 ## Dynamic Project Scoping (consult `NOTION_SCHEMA.md`)

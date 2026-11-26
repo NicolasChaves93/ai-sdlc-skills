@@ -73,6 +73,7 @@ Structure implementation from simplest core to production scale so every level p
 ### Step 3: Architecture Decision Records (ADRs) & Technical Diagrams
 Once approved, generate:
 - **ADRs** for **`PoCs y decisiones`** (`db: 41ae618d-5d53-815d-9fb6-d48297f1dc72`) documenting why the architecture was evolved or replaced, hosting trade-offs, and persistence stages.
+- **Source of truth:** write each ADR first as `docs/adr/NNNN-title.md` in the project repo, with a `- **Estado:** Aceptada | En validación | Descartada` line, then mirror it to Notion. Only the user moves an ADR to `Aceptada`.
 - **Mermaid Diagrams** for **`Documentos`** (`Fase = 3 Diseño`, template `PT-IGS`):
   - C4 Architecture Diagrams: Context, Containers, and Hexagonal Components (`flowchart TD`)
   - Physical Data Model (`erDiagram` with PKs, FKs, indexes)
