@@ -1,0 +1,16 @@
+{
+  "name": "sim-template-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Visor del simulador (bpmn-js) y herramientas de trazado de BPMN",
+  "dependencies": {
+    "bpmn-auto-layout": "^1.3.0",
+    "bpmn-js": "^18.3.1",
+    "bpmn-moddle": "^10.3.1",
+    "@xmldom/xmldom": "^0.9.12"
+  },
+  "devDependencies": {
+    "esbuild": "*"
+  }
+}

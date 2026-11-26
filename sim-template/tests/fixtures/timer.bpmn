@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Defs_Timer" targetNamespace="http://example.org/timer">
+  <bpmn:process id="Process_Timer" isExecutable="true">
+    <bpmn:startEvent id="Inicio_T"/>
+    <bpmn:userTask id="T_Esperar" name="Esperar respuesta"/>
+    <bpmn:boundaryEvent id="B_Tiempo" attachedToRef="T_Esperar" cancelActivity="true">
+      <bpmn:timerEventDefinition><bpmn:timeDuration xsi:type="bpmn:tFormalExpression">"PT30S"</bpmn:timeDuration></bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:manualTask id="T_Vencio" name="Aviso de tiempo vencido"/>
+    <bpmn:endEvent id="End_OK"/><bpmn:endEvent id="End_Vencio"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="Inicio_T" targetRef="T_Esperar"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="T_Esperar" targetRef="End_OK"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="B_Tiempo" targetRef="T_Vencio"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="T_Vencio" targetRef="End_Vencio"/>
+  </bpmn:process>
+</bpmn:definitions>

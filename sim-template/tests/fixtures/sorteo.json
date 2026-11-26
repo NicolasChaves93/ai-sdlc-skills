@@ -1,0 +1,274 @@
+{
+  "nombre": "Sorteos en uno o varios eventos",
+  "semilla": 11,
+  "params": {
+    "K": {
+      "etiqueta": "Sorteos que corren al mismo tiempo",
+      "valor": 3,
+      "min": 1,
+      "max": 30,
+      "paso": 1,
+      "unidad": "sorteos",
+      "origen": "supuesto",
+      "nota": "Cada sorteo tiene su propio cliente, administrador y operador, pero comparten el sistema."
+    },
+    "VENTANA": {
+      "etiqueta": "Ventana en la que arrancan los sorteos",
+      "valor": 600,
+      "min": 1,
+      "max": 3600,
+      "paso": 10,
+      "unidad": "s",
+      "origen": "supuesto"
+    },
+    "B": {
+      "etiqueta": "Tamaño de la base de participantes",
+      "valor": 5000,
+      "min": 100,
+      "max": 100000,
+      "paso": 100,
+      "unidad": "personas",
+      "origen": "supuesto",
+      "nota": "Lo entrega el cliente; afecta validación y selección."
+    },
+    "RONDAS": {
+      "etiqueta": "Rondas por sorteo",
+      "valor": 5,
+      "min": 1,
+      "max": 30,
+      "paso": 1,
+      "unidad": "rondas",
+      "origen": "negocio",
+      "br": "BR-05"
+    },
+    "CAP": {
+      "etiqueta": "Capacidad del sistema (operaciones simultáneas)",
+      "valor": 4,
+      "min": 1,
+      "max": 100,
+      "paso": 1,
+      "unidad": "operaciones",
+      "origen": "supuesto",
+      "nota": "Cambia según el stack que apruebe el ADR."
+    },
+    "P_INVALIDA": {
+      "etiqueta": "Bases que llegan con errores (duplicados, datos incompletos)",
+      "valor": 0.25,
+      "min": 0,
+      "max": 0.9,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto"
+    },
+    "P_MOD": {
+      "etiqueta": "Rondas en las que se modifica la base",
+      "valor": 0.4,
+      "min": 0,
+      "max": 1,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-07"
+    },
+    "P_RECHAZO": {
+      "etiqueta": "Cambios rechazados (eliminar a un ganador)",
+      "valor": 0.15,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-07"
+    },
+    "P_NOALCANZA": {
+      "etiqueta": "Rondas sin suficientes participantes elegibles",
+      "valor": 0.05,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-05"
+    }
+  },
+  "raiz": {
+    "instancias": "K",
+    "llegadas": {
+      "tipo": "uniforme",
+      "min": 0,
+      "max": "VENTANA"
+    },
+    "ventana": "VENTANA"
+  },
+  "recursos": {
+    "cliente": {
+      "nombre": "Cliente",
+      "capacidad": "K"
+    },
+    "admin": {
+      "nombre": "Administrador",
+      "capacidad": "K"
+    },
+    "operador": {
+      "nombre": "Operador",
+      "capacidad": "K"
+    },
+    "sistema": {
+      "nombre": "Sistema (procesamiento y almacenamiento)",
+      "capacidad": "CAP"
+    }
+  },
+  "elementos": {
+    "SP_Prep": {
+      "detalle": "Antes del evento: el cliente entrega la base y se valida. La hace el Administrador con el cliente."
+    },
+    "T_Entregar": {
+      "detalle": "El cliente define quién participa y entrega la base organizada por grupos (formato por confirmar: Excel u otro).",
+      "recurso": "cliente",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 1800,
+        "cv": 0.6
+      }
+    },
+    "T_Cargar": {
+      "detalle": "El Administrador carga la base y asigna los grupos.",
+      "recurso": "admin",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 600,
+        "cv": 0.4
+      }
+    },
+    "T_Validar": {
+      "detalle": "El sistema revisa duplicados y datos incompletos. El tiempo crece con el tamaño de la base.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.002"
+    },
+    "G_Valida": {
+      "detalle": "Camino que faltaba en el documento original: qué pasa si la base trae errores.",
+      "prob": {
+        "F_val_no": "P_INVALIDA"
+      },
+      "caminoMejor": "F_val_si",
+      "caminoPeor": "F_val_no",
+      "repPeor": 2
+    },
+    "T_Corregir": {
+      "detalle": "Se corrige la base con el cliente y se vuelve a cargar.",
+      "recurso": "cliente",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 1200,
+        "cv": 0.6
+      }
+    },
+    "SP_Rondas": {
+      "detalle": "Durante el evento: se repite una ronda por cada sorteo de premios (BR-05)."
+    },
+    "G_Otra": {
+      "detalle": "Repite la ronda hasta completar las rondas configuradas.",
+      "tipo": "contador",
+      "veces": "RONDAS",
+      "flujo": "F_otra_si"
+    },
+    "SP_Ronda": {
+      "detalle": "Una ronda: se ajusta la base si hace falta, se configura y se eligen los ganadores."
+    },
+    "G_Mod": {
+      "detalle": "La base puede ampliarse o reducirse durante la jornada (BR-07).",
+      "prob": {
+        "F_mod_si": "P_MOD"
+      },
+      "caminoMejor": "F_mod_no",
+      "caminoPeor": "F_mod_si",
+      "repPeor": 999
+    },
+    "SP_Gestion": {
+      "detalle": "Cambios sobre la base de participantes durante la jornada."
+    },
+    "T_Operar": {
+      "detalle": "El Operador carga más participantes, anula un premio o elimina participantes por grupos.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 300,
+        "cv": 0.5
+      }
+    },
+    "T_ValidaCamb": {
+      "detalle": "BR-07: no se puede eliminar a quien figure como ganador.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0005"
+    },
+    "G_Permit": {
+      "detalle": "Camino que faltaba: el sistema debe poder rechazar el cambio.",
+      "prob": {
+        "F_perm_no": "P_RECHAZO"
+      },
+      "caminoMejor": "F_perm_si",
+      "caminoPeor": "F_perm_no",
+      "repPeor": 2
+    },
+    "T_Rechazar": {
+      "detalle": "Se avisa al Operador del motivo del rechazo y puede intentar otro cambio.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "const",
+        "valor": 30
+      }
+    },
+    "T_Config": {
+      "detalle": "El Operador elige el grupo (o todos, BR-06) y cuántos ganadores salen en esta ronda.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 60,
+        "cv": 0.4
+      }
+    },
+    "G_Alcanza": {
+      "detalle": "Camino que faltaba: ¿alcanzan los participantes elegibles para n ganadores?",
+      "prob": {
+        "F_alc_no": "P_NOALCANZA"
+      },
+      "caminoMejor": "F_alc_si",
+      "caminoPeor": "F_alc_no",
+      "repPeor": 2
+    },
+    "T_Ajustar": {
+      "detalle": "Se reduce n o se amplía la base antes de sortear.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 120,
+        "cv": 0.5
+      }
+    },
+    "T_Seleccionar": {
+      "detalle": "El sistema elige los ganadores sin repetir a los de rondas anteriores (BR-05). El tiempo crece con el tamaño de la base.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0008"
+    },
+    "T_Mostrar": {
+      "detalle": "Los ganadores se proyectan en la pantalla del evento.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "const",
+        "valor": 20
+      }
+    }
+  }
+}

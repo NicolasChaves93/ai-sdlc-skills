@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador de sorteos · Token Simulation</title>
+<link rel="stylesheet" href="assets/diagram-js.css"><link rel="stylesheet" href="assets/bpmn-js.css"><link rel="stylesheet" href="app.css">
+</head><body>
+<header>
+  <div class="marca"><i></i><div><h1><span id="nombreArchivo">sorteo_v3.bpmn</span> <em>Token Simulation</em></h1><small id="motor">conectando con el motor…</small></div></div>
+  <div class="grupo"><div class="seg"><button id="modoAnalisis" class="on" title="Corre todo el evento y lo reproduce">Análisis</button><button id="modoVivo" title="Simulación en tiempo real: inyecta sorteos, fuerza caminos">En vivo</button></div>
+    <div class="seg"><button id="vistaPlana" class="on" title="Todo el proceso con carriles">Completa</button><button id="vistaSub" title="Agrupado en subprocesos que se abren">Subprocesos</button></div></div>
+  <span class="sp"></span>
+  <div class="grupo">
+    <button id="play" class="play" title="Reproducir / pausar">▶</button>
+    <div class="seg" title="Velocidad: segundos simulados por segundo real"><button data-vel="10">10×</button><button data-vel="60" class="on">60×</button><button data-vel="300">300×</button><button data-vel="1000">1000×</button></div>
+    <button id="btnInyectar" class="azul">＋ Inyectar evento</button><button id="btnRafaga" class="ambar">⚡ Ráfaga +10</button>
+  </div>
+  <span class="sp"></span>
+  <div class="grupo">
+    <button id="btnBpmn" title="Descarga el diagrama .bpmn (abre en Camunda Modeler)">⤓ .bpmn</button>
+    <label class="btn" title="Carga un .bpmn con dibujo (exportado de Camunda Modeler)">⤒ .bpmn<input id="fileBpmn" type="file" accept=".bpmn,.xml" hidden></label>
+    <button id="btnEscExport" title="Descarga tiempos, probabilidades y capacidades">⤓ escenario</button>
+    <label class="btn" title="Carga un escenario .json">⤒ escenario<input id="fileEsc" type="file" accept=".json" hidden></label>
+    <button id="btnReset" title="Vuelve a los valores originales">⟲</button>
+  </div>
+</header>
+<div id="aviso"></div>
+<main>
+  <aside id="izq">
+    <h2>Condiciones de la prueba</h2>
+    <div class="f"><label>Flujo</label><select id="modoCaso"></select></div>
+    <div class="f"><label>Cómo llegan los eventos</label><select id="perfil"></select></div>
+    <div class="fila sem"><span>Semilla del azar: <b id="semilla">7</b></span><button id="btnSemilla" title="Otra corrida al azar">🎲 Otra</button></div>
+    <h2>Resultado</h2>
+    <div id="kpis"></div>
+    <h2>Escenario</h2>
+    <p class="hint">Mueve los valores y todo se recalcula. <span class="tag negocio">negocio</span> son reglas del producto; <span class="tag supuesto">supuesto</span> son estimaciones para simular.</p>
+    <div id="params"></div>
+  </aside>
+  <section id="centro">
+    <div id="barra">
+      <label>Mapa de calor
+        <select id="metrica">
+          <option value="esperaTotal">Espera acumulada (suma de todos)</option>
+          <option value="esperaP95">Espera (percentil 95)</option>
+          <option value="colaMax">Cola máxima</option>
+          <option value="entradas">Volumen (veces que pasa)</option>
+          <option value="servicioProm">Duración promedio</option>
+        </select></label>
+      <span id="leyenda"><i class="h0"></i>bajo<i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i><i class="h5"></i>alto</span>
+      <button id="verTodo" class="ghost" title="Ajusta el diagrama para verlo completo">⤢ Ver todo</button>
+      <span class="sp"></span><span class="hint">Clic en un paso para ver y editar · en una compuerta puedes forzar el camino</span>
+    </div>
+    <div id="canvas"></div>
+    <div id="player">
+      <input id="scrub" type="range" min="0" max="1000" value="0">
+      <span id="etqVivo" hidden>● EN VIVO · reloj simulado</span>
+      <span id="reloj">0:00</span>
+      <span id="activos"></span>
+    </div>
+  </section>
+  <aside id="der">
+    <div class="tabs2"><button data-tab="crit" class="on">Puntos críticos</button><button data-tab="paso">Paso</button><button data-tab="pruebas">Pruebas</button></div>
+    <div id="crit"></div>
+    <div id="paso" hidden></div>
+    <div id="pruebas" hidden></div>
+  </aside>
+</main>
+<script type="module" src="app.js"></script></body></html>

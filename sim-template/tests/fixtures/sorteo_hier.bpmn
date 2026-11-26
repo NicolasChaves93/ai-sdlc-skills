@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_Sorteo" targetNamespace="http://colombiancode.co/plataforma-v2/sorteo">
+  <bpmn:process id="Process_Sorteo" name="Sorteo (Plataforma de Juegos v2)" isExecutable="false">
+    <bpmn:startEvent id="Start_Sorteo" name="Sorteo programado"/>
+    <bpmn:subProcess id="SP_Prep" name="1. Preparación de la base">
+      <bpmn:startEvent id="Start_Prep"/>
+      <bpmn:manualTask id="T_Entregar" name="Entregar base de participantes por grupos"/>
+      <bpmn:userTask id="T_Cargar" name="Cargar base y asignar grupos"/>
+      <bpmn:serviceTask id="T_Validar" name="Validar base de participantes"/>
+      <bpmn:exclusiveGateway id="G_Valida" name="¿La base es válida?"/>
+      <bpmn:manualTask id="T_Corregir" name="Corregir la base con el cliente"/>
+      <bpmn:endEvent id="End_Prep"/>
+      <bpmn:sequenceFlow id="F_s1" sourceRef="Start_Prep" targetRef="T_Entregar"/>
+      <bpmn:sequenceFlow id="F_s2" sourceRef="T_Entregar" targetRef="T_Cargar"/>
+      <bpmn:sequenceFlow id="F_s3" sourceRef="T_Cargar" targetRef="T_Validar"/>
+      <bpmn:sequenceFlow id="F_s4" sourceRef="T_Validar" targetRef="G_Valida"/>
+      <bpmn:sequenceFlow id="F_val_si" name="Sí" sourceRef="G_Valida" targetRef="End_Prep"/>
+      <bpmn:sequenceFlow id="F_val_no" name="No" sourceRef="G_Valida" targetRef="T_Corregir"/>
+      <bpmn:sequenceFlow id="F_s5" sourceRef="T_Corregir" targetRef="T_Cargar"/>
+    </bpmn:subProcess>
+    <bpmn:subProcess id="SP_Rondas" name="2. Rondas del sorteo">
+      <bpmn:startEvent id="Start_Rondas"/>
+      <bpmn:subProcess id="SP_Ronda" name="Ronda de sorteo">
+        <bpmn:startEvent id="Start_Ronda"/>
+        <bpmn:exclusiveGateway id="G_Mod" name="¿Modificar la base?"/>
+        <bpmn:subProcess id="SP_Gestion" name="Gestionar la base de participantes">
+          <bpmn:startEvent id="Start_Gestion"/>
+          <bpmn:userTask id="T_Operar" name="Cargar participantes, anular premio o eliminar participantes"/>
+          <bpmn:serviceTask id="T_ValidaCamb" name="Validar cambios: no se elimina a quien figure como ganador"/>
+          <bpmn:exclusiveGateway id="G_Permit" name="¿Cambio permitido?"/>
+          <bpmn:userTask id="T_Rechazar" name="Rechazar el cambio y avisar al operador"/>
+          <bpmn:endEvent id="End_Gestion"/>
+          <bpmn:sequenceFlow id="F_g1" sourceRef="Start_Gestion" targetRef="T_Operar"/>
+          <bpmn:sequenceFlow id="F_g2" sourceRef="T_Operar" targetRef="T_ValidaCamb"/>
+          <bpmn:sequenceFlow id="F_g3" sourceRef="T_ValidaCamb" targetRef="G_Permit"/>
+          <bpmn:sequenceFlow id="F_perm_si" name="Sí" sourceRef="G_Permit" targetRef="End_Gestion"/>
+          <bpmn:sequenceFlow id="F_perm_no" name="No" sourceRef="G_Permit" targetRef="T_Rechazar"/>
+          <bpmn:sequenceFlow id="F_g4" sourceRef="T_Rechazar" targetRef="T_Operar"/>
+        </bpmn:subProcess>
+        <bpmn:userTask id="T_Config" name="Configurar la ronda (grupo y número de ganadores)"/>
+        <bpmn:exclusiveGateway id="G_Alcanza" name="¿Hay suficientes participantes elegibles?"/>
+        <bpmn:userTask id="T_Ajustar" name="Ajustar el número de ganadores o ampliar la base"/>
+        <bpmn:serviceTask id="T_Seleccionar" name="Seleccionar ganadores sin repetir a los anteriores"/>
+        <bpmn:userTask id="T_Mostrar" name="Mostrar ganadores en la pantalla del evento"/>
+        <bpmn:endEvent id="End_Ronda"/>
+        <bpmn:sequenceFlow id="F_n1" sourceRef="Start_Ronda" targetRef="G_Mod"/>
+        <bpmn:sequenceFlow id="F_mod_si" name="Sí" sourceRef="G_Mod" targetRef="SP_Gestion"/>
+        <bpmn:sequenceFlow id="F_mod_no" name="No" sourceRef="G_Mod" targetRef="T_Config"/>
+        <bpmn:sequenceFlow id="F_n2" sourceRef="SP_Gestion" targetRef="T_Config"/>
+        <bpmn:sequenceFlow id="F_n3" sourceRef="T_Config" targetRef="G_Alcanza"/>
+        <bpmn:sequenceFlow id="F_alc_si" name="Sí" sourceRef="G_Alcanza" targetRef="T_Seleccionar"/>
+        <bpmn:sequenceFlow id="F_alc_no" name="No" sourceRef="G_Alcanza" targetRef="T_Ajustar"/>
+        <bpmn:sequenceFlow id="F_n4" sourceRef="T_Ajustar" targetRef="T_Config"/>
+        <bpmn:sequenceFlow id="F_n5" sourceRef="T_Seleccionar" targetRef="T_Mostrar"/>
+        <bpmn:sequenceFlow id="F_n6" sourceRef="T_Mostrar" targetRef="End_Ronda"/>
+      </bpmn:subProcess>
+      <bpmn:exclusiveGateway id="G_Otra" name="¿Hay otra ronda?"/>
+      <bpmn:endEvent id="End_Rondas"/>
+      <bpmn:sequenceFlow id="F_o1" sourceRef="Start_Rondas" targetRef="SP_Ronda"/>
+      <bpmn:sequenceFlow id="F_o2" sourceRef="SP_Ronda" targetRef="G_Otra"/>
+      <bpmn:sequenceFlow id="F_otra_si" name="Sí" sourceRef="G_Otra" targetRef="SP_Ronda"/>
+      <bpmn:sequenceFlow id="F_otra_no" name="No" sourceRef="G_Otra" targetRef="End_Rondas"/>
+    </bpmn:subProcess>
+    <bpmn:endEvent id="End_Sorteo" name="Sorteo finalizado"/>
+    <bpmn:sequenceFlow id="F_x1" sourceRef="Start_Sorteo" targetRef="SP_Prep"/>
+    <bpmn:sequenceFlow id="F_x2" sourceRef="SP_Prep" targetRef="SP_Rondas"/>
+    <bpmn:sequenceFlow id="F_x3" sourceRef="SP_Rondas" targetRef="End_Sorteo"/>
+  </bpmn:process>
+<bpmndi:BPMNDiagram id="Diagram_Process_Sorteo">
+    <bpmndi:BPMNPlane id="Plane_Process_Sorteo" bpmnElement="Process_Sorteo">
+      <bpmndi:BPMNShape id="Start_Sorteo_di" bpmnElement="Start_Sorteo">
+        <dc:Bounds x="44" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP_Prep_di" bpmnElement="SP_Prep" isExpanded="false">
+        <dc:Bounds x="144" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP_Rondas_di" bpmnElement="SP_Rondas" isExpanded="false">
+        <dc:Bounds x="326" y="215" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Sorteo_di" bpmnElement="End_Sorteo">
+        <dc:Bounds x="510" y="237" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_x1_di" bpmnElement="F_x1"><di:waypoint x="80" y="85"/><di:waypoint x="144" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_x2_di" bpmnElement="F_x2"><di:waypoint x="264" y="85"/><di:waypoint x="304" y="85"/><di:waypoint x="304" y="255"/><di:waypoint x="326" y="255"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_x3_di" bpmnElement="F_x3"><di:waypoint x="446" y="255"/><di:waypoint x="510" y="255"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram><bpmndi:BPMNDiagram id="Diagram_SP_Prep">
+    <bpmndi:BPMNPlane id="Plane_SP_Prep" bpmnElement="SP_Prep">
+      <bpmndi:BPMNShape id="Start_Prep_di" bpmnElement="Start_Prep">
+        <dc:Bounds x="44" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Entregar_di" bpmnElement="T_Entregar">
+        <dc:Bounds x="144" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Cargar_di" bpmnElement="T_Cargar">
+        <dc:Bounds x="326" y="215" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Validar_di" bpmnElement="T_Validar">
+        <dc:Bounds x="508" y="385" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Valida_di" bpmnElement="G_Valida" isMarkerVisible="true">
+        <dc:Bounds x="690" y="400" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="667" y="453" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Corregir_di" bpmnElement="T_Corregir">
+        <dc:Bounds x="802" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Prep_di" bpmnElement="End_Prep">
+        <dc:Bounds x="844" y="407" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_s1_di" bpmnElement="F_s1"><di:waypoint x="80" y="85"/><di:waypoint x="144" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s2_di" bpmnElement="F_s2"><di:waypoint x="264" y="85"/><di:waypoint x="304" y="85"/><di:waypoint x="304" y="255"/><di:waypoint x="326" y="255"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s3_di" bpmnElement="F_s3"><di:waypoint x="446" y="255"/><di:waypoint x="486" y="255"/><di:waypoint x="486" y="425"/><di:waypoint x="508" y="425"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s4_di" bpmnElement="F_s4"><di:waypoint x="628" y="425"/><di:waypoint x="690" y="425"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_val_si_di" bpmnElement="F_val_si"><di:waypoint x="740" y="425"/><di:waypoint x="844" y="425"/><bpmndi:BPMNLabel><dc:Bounds x="748" y="405" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_val_no_di" bpmnElement="F_val_no"><di:waypoint x="715" y="400"/><di:waypoint x="715" y="85"/><di:waypoint x="802" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="685" y="380" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s5_di" bpmnElement="F_s5"><di:waypoint x="862" y="125"/><di:waypoint x="862" y="159"/><di:waypoint x="386" y="159"/><di:waypoint x="386" y="215"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram><bpmndi:BPMNDiagram id="Diagram_SP_Rondas">
+    <bpmndi:BPMNPlane id="Plane_SP_Rondas" bpmnElement="SP_Rondas">
+      <bpmndi:BPMNShape id="Start_Rondas_di" bpmnElement="Start_Rondas">
+        <dc:Bounds x="44" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP_Ronda_di" bpmnElement="SP_Ronda" isExpanded="false">
+        <dc:Bounds x="144" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Otra_di" bpmnElement="G_Otra" isMarkerVisible="true">
+        <dc:Bounds x="326" y="60" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="303" y="25" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Rondas_di" bpmnElement="End_Rondas">
+        <dc:Bounds x="440" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_o1_di" bpmnElement="F_o1"><di:waypoint x="80" y="85"/><di:waypoint x="144" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_o2_di" bpmnElement="F_o2"><di:waypoint x="264" y="85"/><di:waypoint x="326" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_otra_si_di" bpmnElement="F_otra_si"><di:waypoint x="351" y="110"/><di:waypoint x="351" y="159"/><di:waypoint x="204" y="159"/><di:waypoint x="204" y="125"/><bpmndi:BPMNLabel><dc:Bounds x="358" y="118" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_otra_no_di" bpmnElement="F_otra_no"><di:waypoint x="376" y="85"/><di:waypoint x="440" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="384" y="65" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram><bpmndi:BPMNDiagram id="Diagram_SP_Ronda">
+    <bpmndi:BPMNPlane id="Plane_SP_Ronda" bpmnElement="SP_Ronda">
+      <bpmndi:BPMNShape id="Start_Ronda_di" bpmnElement="Start_Ronda">
+        <dc:Bounds x="44" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Mod_di" bpmnElement="G_Mod" isMarkerVisible="true">
+        <dc:Bounds x="144" y="60" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="121" y="113" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP_Gestion_di" bpmnElement="SP_Gestion" isExpanded="false">
+        <dc:Bounds x="256" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Config_di" bpmnElement="T_Config">
+        <dc:Bounds x="438" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Alcanza_di" bpmnElement="G_Alcanza" isMarkerVisible="true">
+        <dc:Bounds x="620" y="230" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="597" y="283" width="96" height="46"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Ajustar_di" bpmnElement="T_Ajustar">
+        <dc:Bounds x="732" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Seleccionar_di" bpmnElement="T_Seleccionar">
+        <dc:Bounds x="732" y="215" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Mostrar_di" bpmnElement="T_Mostrar">
+        <dc:Bounds x="914" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Ronda_di" bpmnElement="End_Ronda">
+        <dc:Bounds x="1098" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_n1_di" bpmnElement="F_n1"><di:waypoint x="80" y="85"/><di:waypoint x="144" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_mod_si_di" bpmnElement="F_mod_si"><di:waypoint x="194" y="85"/><di:waypoint x="256" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="202" y="65" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_mod_no_di" bpmnElement="F_mod_no"><di:waypoint x="194" y="85"/><di:waypoint x="208" y="85"/><di:waypoint x="208" y="11"/><di:waypoint x="424" y="11"/><di:waypoint x="424" y="85"/><di:waypoint x="438" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="178" y="65" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n2_di" bpmnElement="F_n2"><di:waypoint x="376" y="85"/><di:waypoint x="438" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n3_di" bpmnElement="F_n3"><di:waypoint x="558" y="85"/><di:waypoint x="598" y="85"/><di:waypoint x="598" y="255"/><di:waypoint x="620" y="255"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_alc_si_di" bpmnElement="F_alc_si"><di:waypoint x="670" y="255"/><di:waypoint x="732" y="255"/><bpmndi:BPMNLabel><dc:Bounds x="678" y="235" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_alc_no_di" bpmnElement="F_alc_no"><di:waypoint x="645" y="230"/><di:waypoint x="645" y="85"/><di:waypoint x="732" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="615" y="210" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n4_di" bpmnElement="F_n4"><di:waypoint x="792" y="125"/><di:waypoint x="792" y="159"/><di:waypoint x="498" y="159"/><di:waypoint x="498" y="125"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n5_di" bpmnElement="F_n5"><di:waypoint x="852" y="255"/><di:waypoint x="892" y="255"/><di:waypoint x="892" y="85"/><di:waypoint x="914" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n6_di" bpmnElement="F_n6"><di:waypoint x="1034" y="85"/><di:waypoint x="1098" y="85"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram><bpmndi:BPMNDiagram id="Diagram_SP_Gestion">
+    <bpmndi:BPMNPlane id="Plane_SP_Gestion" bpmnElement="SP_Gestion">
+      <bpmndi:BPMNShape id="Start_Gestion_di" bpmnElement="Start_Gestion">
+        <dc:Bounds x="44" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Operar_di" bpmnElement="T_Operar">
+        <dc:Bounds x="144" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_ValidaCamb_di" bpmnElement="T_ValidaCamb">
+        <dc:Bounds x="326" y="215" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Permit_di" bpmnElement="G_Permit" isMarkerVisible="true">
+        <dc:Bounds x="508" y="230" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="485" y="283" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Rechazar_di" bpmnElement="T_Rechazar">
+        <dc:Bounds x="620" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Gestion_di" bpmnElement="End_Gestion">
+        <dc:Bounds x="662" y="237" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_g1_di" bpmnElement="F_g1"><di:waypoint x="80" y="85"/><di:waypoint x="144" y="85"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g2_di" bpmnElement="F_g2"><di:waypoint x="264" y="85"/><di:waypoint x="304" y="85"/><di:waypoint x="304" y="255"/><di:waypoint x="326" y="255"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g3_di" bpmnElement="F_g3"><di:waypoint x="446" y="255"/><di:waypoint x="508" y="255"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_perm_si_di" bpmnElement="F_perm_si"><di:waypoint x="558" y="255"/><di:waypoint x="662" y="255"/><bpmndi:BPMNLabel><dc:Bounds x="566" y="235" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_perm_no_di" bpmnElement="F_perm_no"><di:waypoint x="533" y="230"/><di:waypoint x="533" y="85"/><di:waypoint x="620" y="85"/><bpmndi:BPMNLabel><dc:Bounds x="503" y="210" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g4_di" bpmnElement="F_g4"><di:waypoint x="680" y="125"/><di:waypoint x="680" y="159"/><di:waypoint x="204" y="159"/><di:waypoint x="204" y="125"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram></bpmn:definitions>

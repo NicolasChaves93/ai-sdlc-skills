@@ -1,0 +1,705 @@
+{
+  "nombre": "Evento con Sorteo general",
+  "semilla": 11,
+  "params": {
+    "K": {
+      "etiqueta": "Eventos al mismo tiempo",
+      "valor": 3,
+      "min": 1,
+      "max": 30,
+      "paso": 1,
+      "unidad": "sorteos",
+      "origen": "supuesto",
+      "nota": "Cada evento tiene su propio cliente, administrador y operador, pero comparten el sistema."
+    },
+    "VENTANA": {
+      "etiqueta": "Ventana en la que arrancan los eventos",
+      "valor": 600,
+      "min": 1,
+      "max": 3600,
+      "paso": 10,
+      "unidad": "s",
+      "origen": "supuesto"
+    },
+    "B": {
+      "etiqueta": "Tamaño de la base de participantes",
+      "valor": 5000,
+      "min": 100,
+      "max": 100000,
+      "paso": 100,
+      "unidad": "personas",
+      "origen": "supuesto",
+      "nota": "Lo entrega el cliente; afecta validación y selección."
+    },
+    "SORTEOS": {
+      "etiqueta": "Sorteos por evento",
+      "valor": 5,
+      "min": 1,
+      "max": 30,
+      "paso": 1,
+      "unidad": "sorteos",
+      "origen": "negocio",
+      "br": "BR-29"
+    },
+    "GANADORES": {
+      "etiqueta": "Ganadores reales que se buscan por sorteo",
+      "valor": 2,
+      "min": 1,
+      "max": 10,
+      "paso": 1,
+      "unidad": "ganadores",
+      "origen": "negocio",
+      "br": "BR-29",
+      "nota": "Cada sorteo sortea a una persona a la vez hasta completar este número de ganadores reales."
+    },
+    "P_REAL": {
+      "etiqueta": "Sorteados que resultan ganadores reales",
+      "valor": 0.3,
+      "min": 0.05,
+      "max": 1,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-24",
+      "nota": "En el evento del 28/10: 5 ganadores reales de 20 sorteados en pantalla (25 %). Los demás no estaban o no eran válidos."
+    },
+    "CAP": {
+      "etiqueta": "Capacidad del sistema (operaciones simultáneas)",
+      "valor": 4,
+      "min": 1,
+      "max": 100,
+      "paso": 1,
+      "unidad": "operaciones",
+      "origen": "supuesto",
+      "nota": "Cambia según el stack que apruebe el ADR."
+    },
+    "P_RECHAZOS": {
+      "etiqueta": "Cargas en las que se rechaza algún participante",
+      "valor": 0.25,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-15",
+      "nota": "El sistema carga los válidos y le devuelve al cliente quiénes se rechazaron y por qué; el sorteo sigue."
+    },
+    "P_NINGUNO": {
+      "etiqueta": "Cargas en las que no se logra cargar ningún participante",
+      "valor": 0.05,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-16",
+      "nota": "Única situación que detiene la preparación: el cliente corrige y vuelve a entregar la base."
+    },
+    "P_SINID": {
+      "etiqueta": "Cargas con personas sin id",
+      "valor": 0.2,
+      "min": 0,
+      "max": 1,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-18",
+      "nota": "No se rechazan: el sistema les asigna un id único y deja una nota."
+    },
+    "P_MOD": {
+      "etiqueta": "Sorteos antes de los cuales se opera sobre los participantes",
+      "valor": 0.4,
+      "min": 0,
+      "max": 1,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-21",
+      "nota": "Cargar, listar, eliminar, anular premio, reporte con corte o reiniciar. Solo entre sorteos, nunca durante uno."
+    },
+    "P_OTRA": {
+      "etiqueta": "Veces que se hace otra operación seguida",
+      "valor": 0.3,
+      "min": 0,
+      "max": 0.9,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-21"
+    },
+    "P_RECHAZO": {
+      "etiqueta": "Eliminaciones en las que hay ganadores entre los elegidos",
+      "valor": 0.15,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-19"
+    },
+    "P_HAB": {
+      "etiqueta": "Sorteos en los que se habilita de nuevo a sorteados que no fueron ganador real",
+      "valor": 0.1,
+      "min": 0,
+      "max": 1,
+      "paso": 0.05,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-26",
+      "nota": "Se marcan al empezar un sorteo nuevo. Un ganador real nunca se puede habilitar de nuevo."
+    },
+    "P_NOALCANZA": {
+      "etiqueta": "Sorteos sin suficientes participantes elegibles",
+      "valor": 0.05,
+      "min": 0,
+      "max": 1,
+      "paso": 0.01,
+      "unidad": "prob.",
+      "origen": "supuesto",
+      "br": "BR-23",
+      "nota": "Una persona ya sorteada no vuelve a salir en el evento (BR-26), así que cada sorteo reduce los elegibles."
+    }
+  },
+  "raiz": {
+    "instancias": "K",
+    "llegadas": {
+      "tipo": "uniforme",
+      "min": 0,
+      "max": "VENTANA"
+    },
+    "ventana": "VENTANA"
+  },
+  "recursos": {
+    "cliente": {
+      "nombre": "Cliente",
+      "capacidad": "K"
+    },
+    "admin": {
+      "nombre": "Administrador",
+      "capacidad": "K"
+    },
+    "operador": {
+      "nombre": "Operador",
+      "capacidad": "K"
+    },
+    "sistema": {
+      "nombre": "Sistema (procesamiento y almacenamiento)",
+      "capacidad": "CAP"
+    }
+  },
+  "elementos": {
+    "SP_Prep": {
+      "detalle": "Antes del evento: el cliente entrega la base y el sistema la carga. El Administrador no corrige la base: lo que no se pueda cargar se le devuelve al cliente."
+    },
+    "T_Entregar": {
+      "detalle": "El cliente define quién participa y entrega la base organizada por grupos (formato por confirmar: Excel u otro). También vuelve a entregarla corregida cuando no se logró cargar ningún participante.",
+      "recurso": "cliente",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 1800,
+        "cv": 0.6
+      }
+    },
+    "T_Cargar": {
+      "detalle": "El Administrador sube la base al sistema y asigna los grupos. No corrige datos.",
+      "recurso": "admin",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 600,
+        "cv": 0.4
+      }
+    },
+    "T_Validar": {
+      "detalle": "Revisa cada participante: carga a los válidos y separa a los que no se pueden cargar con su motivo. Cada persona se registra una sola vez, por su id (número único que decide el cliente, o su cédula); si ya está en la base de otro grupo, solo se anota que participa también en ese grupo. A quien no trae id no se le rechaza (BR-18). Se guardan solo id, nombre y los grupos en que participa (BR-17).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.002"
+    },
+    "G_Otra": {
+      "detalle": "Repite hasta completar los sorteos configurados para el evento.",
+      "tipo": "contador",
+      "veces": "SORTEOS",
+      "flujo": "F_otra_si"
+    },
+    "T_Config": {
+      "detalle": "El Operador elige el grupo del sorteo, con qué base (o todas) y cuántos ganadores reales se buscan (BR-29). Aquí se cambia de base. Antes de verificar que alcancen, puede habilitar de nuevo a sorteados que no fueron ganador real.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 60,
+        "cv": 0.4
+      }
+    },
+    "G_Alcanza": {
+      "detalle": "¿Alcanzan los participantes elegibles (sin contar a los ya sorteados, salvo los habilitados de nuevo) para los ganadores buscados? (BR-23)",
+      "prob": {
+        "F_alc_no": "P_NOALCANZA"
+      },
+      "caminoMejor": "F_alc_si",
+      "caminoPeor": "F_alc_no",
+      "repPeor": 2
+    },
+    "T_Ajustar": {
+      "detalle": "Se cambia la configuración: menos ganadores, otra base u otro grupo.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 120,
+        "cv": 0.5
+      }
+    },
+    "T_Seleccionar": {
+      "detalle": "Sortea a la siguiente persona entre las elegibles. Nunca saca a alguien ya sorteado, sea o no ganador real, salvo que se haya habilitado marcándolo al empezar el sorteo; un ganador real nunca vuelve a salir en el evento (BR-26). Cada persona sorteada recibe un orden en el grupo y un orden general (BR-25).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0002"
+    },
+    "T_Mostrar": {
+      "detalle": "La persona sorteada se proyecta en la pantalla del evento con su nombre y su grupo. La cédula nunca se muestra en la pantalla (BR-27).",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "const",
+        "valor": 20
+      }
+    },
+    "G_Cargo": {
+      "detalle": "BR-16: que algunos participantes no se carguen no detiene el evento; la preparación solo se detiene si la carga quedó en cero.",
+      "prob": {
+        "F_cargo_no": "P_NINGUNO"
+      },
+      "caminoMejor": "F_cargo_si",
+      "caminoPeor": "F_cargo_no",
+      "repPeor": 2
+    },
+    "T_InfNinguno": {
+      "detalle": "Respuesta al cliente: no se cargó ningún participante, con el usuario y el motivo de cada rechazo. El cliente corrige y vuelve a entregar la base.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0002"
+    },
+    "G_Rech": {
+      "detalle": "BR-15: si hubo rechazados se le informa al cliente quién y por qué, para que los corrija y los reenvíe; el evento no espera.",
+      "prob": {
+        "F_rech_si": "P_RECHAZOS"
+      },
+      "caminoMejor": "F_rech_no",
+      "caminoPeor": "F_rech_si",
+      "repPeor": 999
+    },
+    "T_InfRech": {
+      "detalle": "Respuesta al cliente con cada participante rechazado (usuario) y el motivo. Los corregidos se reenvían y se cargan con la operación «Cargar participantes» entre sorteos.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0003"
+    },
+    "SP_Cargar": {
+      "detalle": "La carga de una base: se sube, el sistema carga a los válidos y genera el informe. Es la misma operación que se usa durante el evento."
+    },
+    "T_Subir": {
+      "detalle": "El Administrador sube la base indicando cómo se llama y sus grupos. No corrige datos. Se pueden cargar varias bases para un mismo evento.",
+      "recurso": "admin",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 600,
+        "cv": 0.4
+      }
+    },
+    "T_Informe": {
+      "detalle": "Resultado de la carga: quiénes se cargaron y quiénes se rechazaron, cada uno con el usuario y el motivo.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0003"
+    },
+    "G_Vuelta": {
+      "detalle": "Punto de unión: se llega aquí al empezar y después de cada sorteo."
+    },
+    "G_Oper": {
+      "detalle": "Antes de cada sorteo el operador decide si opera sobre los participantes. Durante un sorteo no se puede (BR-21).",
+      "prob": {
+        "F_oper_si": "P_MOD"
+      },
+      "caminoMejor": "F_oper_no",
+      "caminoPeor": "F_oper_si",
+      "repPeor": 999
+    },
+    "SP_Operar": {
+      "detalle": "Menú de operaciones sobre los participantes. Cada una tiene su propia validación y su propia respuesta, y se pueden hacer varias seguidas."
+    },
+    "G_Entra": {
+      "detalle": "Punto de unión: se llega aquí al abrir el menú y después de cada operación."
+    },
+    "G_Op": {
+      "detalle": "Elige la operación: cargar, listar participantes, listar ganadores, eliminar, anular premio, sacar el reporte con corte o reiniciar el sorteo.",
+      "prob": {
+        "F_op_cargar": 0.2,
+        "F_op_listar": 0.2,
+        "F_op_ganad": 0.15,
+        "F_op_elim": 0.15,
+        "F_op_anul": 0.1,
+        "F_op_corte": 0.1
+      },
+      "caminoPeor": "F_op_cargar",
+      "caminoMejor": "F_op_listar",
+      "repPeor": 999
+    },
+    "SP_CargarOp": {
+      "detalle": "Cargar participantes durante el evento (otra base o más participantes). Mismo procedimiento que en la preparación, pero aquí que no se cargue ninguno no detiene nada."
+    },
+    "T_SubirOp": {
+      "detalle": "El Operador sube la base indicando cómo se llama y sus grupos.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 300,
+        "cv": 0.5
+      }
+    },
+    "T_ValidarOp": {
+      "detalle": "Carga a los válidos y rechaza a los demás con su motivo. Cada persona se registra una sola vez por su id; a quien no trae id no se le rechaza (BR-18).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0005"
+    },
+    "T_InformeOp": {
+      "detalle": "Informe de la carga: cargados y rechazados con usuario y motivo.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0001"
+    },
+    "G_RechOp": {
+      "detalle": "Si hubo rechazados se informa al cliente para que los corrija y los reenvíe (BR-15).",
+      "prob": {
+        "F_rechop_si": "P_RECHAZOS"
+      },
+      "caminoMejor": "F_rechop_no",
+      "caminoPeor": "F_rechop_si",
+      "repPeor": 999
+    },
+    "T_InfRechOp": {
+      "detalle": "Respuesta al cliente con cada rechazado y el motivo.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0002"
+    },
+    "T_ListarP": {
+      "detalle": "Muestra los participantes por base y grupo, con su id, nombre y cédula, para el Operador (la cédula es visible en las listas del Operador). Solo consulta: no cambia nada.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0004"
+    },
+    "T_ListarG": {
+      "detalle": "Muestra los ganadores del evento, con su nombre, cédula, sorteo y base, para el Operador. Solo consulta.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 0.5
+      }
+    },
+    "T_Elegir": {
+      "detalle": "El Operador elige qué eliminar: participantes por su id, o un grupo completo.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 120,
+        "cv": 0.5
+      }
+    },
+    "T_VerElim": {
+      "detalle": "Revisa si entre lo elegido (participantes por id, o un grupo completo) hay algún ganador.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0003"
+    },
+    "G_Gan": {
+      "detalle": "BR-19: si entre lo elegido hay ganadores, no se elimina nada sin autorización del Operador.",
+      "prob": {
+        "F_gan_si": "P_RECHAZO"
+      },
+      "caminoMejor": "F_gan_no",
+      "caminoPeor": "F_gan_si",
+      "repPeor": 999
+    },
+    "T_Elim": {
+      "detalle": "Elimina a los participantes elegidos (ninguno es ganador).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0005"
+    },
+    "T_Anular": {
+      "detalle": "El Operador elige al ganador cuyo premio se anula (BR-20).",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 60,
+        "cv": 0.4
+      }
+    },
+    "T_RegAnul": {
+      "detalle": "El ganador deja de serlo y vuelve a ser participante; la anulación queda registrada.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 0.5
+      }
+    },
+    "T_Confirmar": {
+      "detalle": "Reiniciar es una operación fuerte: el sistema pide confirmación antes de hacerlo y luego pregunta qué se limpia.",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "const",
+        "valor": 15
+      }
+    },
+    "G_Conf": {
+      "detalle": "Si no confirma, no pasa nada.",
+      "prob": {
+        "F_conf_si": 0.85
+      },
+      "caminoMejor": "F_conf_si",
+      "caminoPeor": "F_conf_si",
+      "repPeor": 999
+    },
+    "T_Reiniciar": {
+      "detalle": "Limpia todo el sorteo: la base, las personas sorteadas y los ganadores, y lo deja como nuevo (BR-22).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0005"
+    },
+    "G_Unir": {
+      "detalle": "Punto de unión: termina cualquiera de las operaciones."
+    },
+    "G_Mas": {
+      "detalle": "Después de una operación se puede hacer otra.",
+      "prob": {
+        "F_mas_si": "P_OTRA"
+      },
+      "caminoMejor": "F_mas_no",
+      "caminoPeor": "F_mas_si",
+      "repPeor": 1
+    },
+    "T_Autorizar": {
+      "detalle": "Si entre lo que se quiere eliminar hay ganadores, el sistema le pregunta al Operador: eliminar todo (anulando el premio de los ganadores) o eliminar solo a los que no son ganadores (BR-19).",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 45,
+        "cv": 0.5
+      }
+    },
+    "G_Aut": {
+      "detalle": "La autorización: eliminar todo (incluye a los ganadores) o conservar a los ganadores.",
+      "prob": {
+        "F_aut_todo": 0.3
+      },
+      "caminoMejor": "F_aut_resto",
+      "caminoPeor": "F_aut_todo",
+      "repPeor": 999
+    },
+    "T_ElimTodo": {
+      "detalle": "Anula los premios de los ganadores elegidos (queda registrado) y elimina a todos los elegidos. Los ganadores anulados dejan de serlo.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0006"
+    },
+    "T_ElimResto": {
+      "detalle": "Elimina solo a los que no son ganadores y le avisa al Operador a quiénes se conservó, y por qué.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0005"
+    },
+    "T_Reporte": {
+      "detalle": "Al terminar el evento se genera el reporte de resultados (Excel «Informe sorteo <fecha>»), con tres hojas: Resumen (fecha del evento, corte del informe, participantes por grupo, personas distintas, sorteados en pantalla y ganadores reales); Ganadores (Grupo sorteo, Orden en grupo, Orden general, Nombre, Cédula, Hora, Ganador real, Nota); y Participantes (Cédula, Nombre, en qué grupos participa, Ganador, Grupo sorteo, Orden en grupo, Hora ganador, Ganador real). Aquí sí va la cédula; en la pantalla no (BR-28).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 3
+      }
+    },
+    "T_EntregarReporte": {
+      "detalle": "El Administrador le entrega el reporte de resultados al cliente.",
+      "recurso": "admin",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 180,
+        "cv": 0.5
+      }
+    },
+    "T_Verificar": {
+      "detalle": "El Operador verifica en el evento si la persona sorteada es ganador real. No lo es si el sorteo es de prueba, si la persona no está presente en ese momento, o si el sorteo se hizo solo para dar más aleatoriedad (juego del presentador) (BR-24).",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 25,
+        "cv": 0.6
+      }
+    },
+    "G_Real": {
+      "detalle": "BR-24: no toda persona sorteada es ganador real (sorteo de prueba, persona no presente, o sorteo de aleatoriedad del presentador). En el evento del 28/10 salieron 20 en pantalla y fueron 5 ganadores reales.",
+      "prob": {
+        "F_real_no": "1-P_REAL"
+      },
+      "caminoMejor": "F_real_si",
+      "caminoPeor": "F_real_no",
+      "repPeor": 3
+    },
+    "T_RegReal": {
+      "detalle": "Queda registrado el ganador real con su orden en el grupo, su orden general, la hora y una nota si hace falta (BR-25).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      }
+    },
+    "T_RegNoReal": {
+      "detalle": "Queda registrado que la persona sorteada no es ganador real, con su orden, la hora y el motivo: sorteo de prueba, persona no presente, o sorteo para dar más aleatoriedad (juego del presentador) (BR-24, BR-25). No vuelve a salir en el evento, salvo que se habilite de nuevo al empezar un sorteo nuevo (BR-26).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      }
+    },
+    "G_Faltan": {
+      "detalle": "Se sigue sorteando hasta completar los ganadores reales del sorteo.",
+      "tipo": "contador",
+      "veces": "GANADORES",
+      "flujo": "F_falt_si"
+    },
+    "T_Corte": {
+      "detalle": "Genera el reporte de resultados con lo ocurrido hasta este momento (el informe del evento trae «Corte del informe» con fecha y hora). Solo consulta.",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 3
+      }
+    },
+    "SP_Sorteos": {
+      "detalle": "Durante el evento: antes de cada sorteo se puede operar sobre los participantes; luego se hace el sorteo. Nunca se opera mientras un sorteo se ejecuta (BR-21)."
+    },
+    "SP_Sorteo": {
+      "detalle": "Un sorteo del evento (modo Sorteo general): se sortea a una persona a la vez, se muestra en pantalla y el Operador verifica si es ganador real; si no lo es, se sortea a otra, hasta completar los ganadores reales. Mientras corre no se opera sobre los participantes (BR-21)."
+    },
+    "G_Hab": {
+      "detalle": "Al empezar un sorteo nuevo, quien ya fue sorteado sin ser ganador real puede habilitarse de nuevo si se marca. Un ganador real nunca se habilita (BR-26).",
+      "prob": {
+        "F_hab_si": "P_HAB"
+      },
+      "caminoMejor": "F_hab_no",
+      "caminoPeor": "F_hab_si",
+      "repPeor": 999
+    },
+    "T_Habilitar": {
+      "detalle": "El Operador marca a los sorteados que no fueron ganador real y vuelven a participar en este sorteo. Los ganadores reales no aparecen para marcar: nunca se pueden habilitar de nuevo (BR-26).",
+      "recurso": "operador",
+      "dur": {
+        "tipo": "lognormal",
+        "media": 60,
+        "cv": 0.5
+      }
+    },
+    "G_UneHab": {
+      "detalle": "Punto de unión después de decidir si se habilita a alguien."
+    },
+    "G_SinId": {
+      "detalle": "BR-18: quien no trae cédula o id no bloquea la carga.",
+      "prob": {
+        "F_sinid_si": "P_SINID"
+      },
+      "caminoMejor": "F_sinid_no",
+      "caminoPeor": "F_sinid_si",
+      "repPeor": 999
+    },
+    "T_AsignarId": {
+      "detalle": "El sistema le asigna un id único a quien no traía y deja una nota (por ejemplo: «Cédula asignada: no venía en la base»), que sale en el reporte (BR-18).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0001"
+    },
+    "G_SinIdOp": {
+      "detalle": "BR-18: quien no trae cédula o id no bloquea la carga.",
+      "prob": {
+        "F_sinidop_si": "P_SINID"
+      },
+      "caminoMejor": "F_sinidop_no",
+      "caminoPeor": "F_sinidop_si",
+      "repPeor": 999
+    },
+    "T_AsignarIdOp": {
+      "detalle": "El sistema le asigna un id único a quien no traía y deja una nota que sale en el reporte (BR-18).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0001"
+    },
+    "SP_Eliminar": {
+      "detalle": "Eliminar participantes por su id o un grupo completo. Si entre lo elegido hay ganadores, se pide autorización: eliminar todo (anulando los premios) o conservar a los ganadores (BR-19)."
+    },
+    "SP_Reiniciar": {
+      "detalle": "Reiniciar el sorteo pide confirmación; limpia los resultados y conserva las bases (BR-22)."
+    },
+    "T_ReiniciarBase": {
+      "detalle": "Limpia solo la base de participantes; los ganadores y el registro de sorteados se conservan (BR-22).",
+      "recurso": "sistema",
+      "dur": {
+        "tipo": "const",
+        "valor": 1
+      },
+      "escala": "B*0.0003"
+    },
+    "G_Limpia": {
+      "detalle": "Al reiniciar, el Operador elige el alcance: todo el sorteo (con ganadores) o solo la base, conservando los ganadores (BR-22).",
+      "prob": {
+        "F_limp_todo": 0.4
+      },
+      "caminoMejor": "F_limp_base",
+      "caminoPeor": "F_limp_todo",
+      "repPeor": 999
+    }
+  }
+}

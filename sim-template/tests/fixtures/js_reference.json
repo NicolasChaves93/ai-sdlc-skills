@@ -1,0 +1,71 @@
+{
+  "generado": "2026-11-24",
+  "s2": {
+    "mejor": {
+      "params": {
+        "K": 3,
+        "RONDAS": 4
+      },
+      "conteos": {
+        "T_Entregar": 3,
+        "T_Cargar": 3,
+        "T_Validar": 3,
+        "G_Valida": 3,
+        "G_Mod": 12,
+        "T_Config": 12,
+        "G_Alcanza": 12,
+        "T_Seleccionar": 12,
+        "T_Mostrar": 12,
+        "G_Otra": 12
+      },
+      "ciclo_prom": 1340.3589090891103
+    },
+    "peor": {
+      "params": {
+        "K": 3,
+        "RONDAS": 4
+      },
+      "conteos": {
+        "T_Entregar": 3,
+        "T_Cargar": 9,
+        "T_Validar": 9,
+        "G_Valida": 9,
+        "T_Corregir": 6,
+        "G_Mod": 12,
+        "T_Operar": 36,
+        "T_ValidaCamb": 36,
+        "G_Permit": 36,
+        "T_Rechazar": 24,
+        "T_Config": 36,
+        "G_Alcanza": 36,
+        "T_Ajustar": 24,
+        "T_Seleccionar": 12,
+        "T_Mostrar": 12,
+        "G_Otra": 12
+      },
+      "ciclo_prom": 19031.701585387902
+    }
+  },
+  "s3": {
+    "estres": {
+      "params": {
+        "K": 30,
+        "B": 50000,
+        "CAP": 1
+      },
+      "semillas": 20,
+      "ciclo_prom": 11116.392517072034,
+      "saturado": 0.8307571944699882,
+      "cola_max": 26,
+      "duracion": 14397.770307001672
+    },
+    "tipico": {
+      "params": {},
+      "semillas": 20,
+      "ciclo_prom": 4215.940598632601,
+      "saturado": 0,
+      "cola_max": 0,
+      "duracion": 6497.790604564599
+    }
+  }
+}

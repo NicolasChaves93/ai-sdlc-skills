@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="Definitions_ToBe_sorteo_v3" targetNamespace="http://colombiancode.co/plataforma-v2/sorteo">
+  <bpmn:collaboration id="Collaboration_Process_ToBe_Sorteo_v3"><bpmn:participant id="Participant_Process_ToBe_Sorteo_v3" name="Sorteo (Plataforma de Juegos v2)" processRef="Process_ToBe_Sorteo_v3"/></bpmn:collaboration><bpmn:process id="Process_ToBe_Sorteo_v3" name="Sorteo (Plataforma de Juegos v2)" isExecutable="false"><bpmn:laneSet id="LaneSet_Process_ToBe_Sorteo_v3"><bpmn:lane id="Lane_Cliente" name="Cliente"><bpmn:flowNodeRef>T_Entregar</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Corregir</bpmn:flowNodeRef><bpmn:flowNodeRef>Start_Sorteo</bpmn:flowNodeRef></bpmn:lane><bpmn:lane id="Lane_Administrador" name="Administrador"><bpmn:flowNodeRef>T_Cargar</bpmn:flowNodeRef></bpmn:lane><bpmn:lane id="Lane_Operador" name="Operador"><bpmn:flowNodeRef>G_Mod</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Operar</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Rechazar</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Config</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Ajustar</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Mostrar</bpmn:flowNodeRef><bpmn:flowNodeRef>G_Otra</bpmn:flowNodeRef><bpmn:flowNodeRef>End_Sorteo</bpmn:flowNodeRef></bpmn:lane><bpmn:lane id="Lane_Sistema" name="Sistema"><bpmn:flowNodeRef>T_Validar</bpmn:flowNodeRef><bpmn:flowNodeRef>G_Valida</bpmn:flowNodeRef><bpmn:flowNodeRef>T_ValidaCamb</bpmn:flowNodeRef><bpmn:flowNodeRef>G_Permit</bpmn:flowNodeRef><bpmn:flowNodeRef>G_Alcanza</bpmn:flowNodeRef><bpmn:flowNodeRef>T_Seleccionar</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet>
+    <bpmn:startEvent id="Start_Sorteo" name="Sorteo programado"/>
+    <bpmn:manualTask id="T_Entregar" name="Entregar base de participantes por grupos"/>
+    <bpmn:userTask id="T_Cargar" name="Cargar base y asignar grupos"/>
+    <bpmn:serviceTask id="T_Validar" name="Validar base de participantes"/>
+    <bpmn:exclusiveGateway id="G_Valida" name="¿La base es válida?"/>
+    <bpmn:manualTask id="T_Corregir" name="Corregir la base con el cliente"/>
+    <bpmn:exclusiveGateway id="G_Mod" name="¿Modificar la base?"/>
+    <bpmn:userTask id="T_Operar" name="Cargar participantes, anular premio o eliminar participantes"/>
+    <bpmn:serviceTask id="T_ValidaCamb" name="Validar cambios: no se elimina a quien figure como ganador"/>
+    <bpmn:exclusiveGateway id="G_Permit" name="¿Cambio permitido?"/>
+    <bpmn:userTask id="T_Rechazar" name="Rechazar el cambio y avisar al operador"/>
+    <bpmn:userTask id="T_Config" name="Configurar la ronda (grupo y número de ganadores)"/>
+    <bpmn:exclusiveGateway id="G_Alcanza" name="¿Hay suficientes participantes elegibles?"/>
+    <bpmn:userTask id="T_Ajustar" name="Ajustar el número de ganadores o ampliar la base"/>
+    <bpmn:serviceTask id="T_Seleccionar" name="Seleccionar ganadores sin repetir a los anteriores"/>
+    <bpmn:userTask id="T_Mostrar" name="Mostrar ganadores en la pantalla del evento"/>
+    <bpmn:exclusiveGateway id="G_Otra" name="¿Hay otra ronda?"/>
+    <bpmn:endEvent id="End_Sorteo" name="Sorteo finalizado"/>
+    <bpmn:sequenceFlow id="F_s2" sourceRef="T_Entregar" targetRef="T_Cargar"/>
+    <bpmn:sequenceFlow id="F_s3" sourceRef="T_Cargar" targetRef="T_Validar"/>
+    <bpmn:sequenceFlow id="F_s4" sourceRef="T_Validar" targetRef="G_Valida"/>
+    <bpmn:sequenceFlow id="F_val_si" name="Sí" sourceRef="G_Valida" targetRef="G_Mod"/>
+    <bpmn:sequenceFlow id="F_val_no" name="No" sourceRef="G_Valida" targetRef="T_Corregir"/>
+    <bpmn:sequenceFlow id="F_s5" sourceRef="T_Corregir" targetRef="T_Cargar"/>
+    <bpmn:sequenceFlow id="F_g2" sourceRef="T_Operar" targetRef="T_ValidaCamb"/>
+    <bpmn:sequenceFlow id="F_g3" sourceRef="T_ValidaCamb" targetRef="G_Permit"/>
+    <bpmn:sequenceFlow id="F_perm_si" name="Sí" sourceRef="G_Permit" targetRef="T_Config"/>
+    <bpmn:sequenceFlow id="F_perm_no" name="No" sourceRef="G_Permit" targetRef="T_Rechazar"/>
+    <bpmn:sequenceFlow id="F_g4" sourceRef="T_Rechazar" targetRef="T_Operar"/>
+    <bpmn:sequenceFlow id="F_mod_si" name="Sí" sourceRef="G_Mod" targetRef="T_Operar"/>
+    <bpmn:sequenceFlow id="F_mod_no" name="No" sourceRef="G_Mod" targetRef="T_Config"/>
+    <bpmn:sequenceFlow id="F_n3" sourceRef="T_Config" targetRef="G_Alcanza"/>
+    <bpmn:sequenceFlow id="F_alc_si" name="Sí" sourceRef="G_Alcanza" targetRef="T_Seleccionar"/>
+    <bpmn:sequenceFlow id="F_alc_no" name="No" sourceRef="G_Alcanza" targetRef="T_Ajustar"/>
+    <bpmn:sequenceFlow id="F_n4" sourceRef="T_Ajustar" targetRef="T_Config"/>
+    <bpmn:sequenceFlow id="F_n5" sourceRef="T_Seleccionar" targetRef="T_Mostrar"/>
+    <bpmn:sequenceFlow id="F_n6" sourceRef="T_Mostrar" targetRef="G_Otra"/>
+    <bpmn:sequenceFlow id="F_otra_si" name="Sí" sourceRef="G_Otra" targetRef="G_Mod"/>
+    <bpmn:sequenceFlow id="F_otra_no" name="No" sourceRef="G_Otra" targetRef="End_Sorteo"/>
+    <bpmn:sequenceFlow id="F_x1" sourceRef="Start_Sorteo" targetRef="T_Entregar"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_ToBe_Sorteo_v3">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_ToBe_Sorteo_v3" bpmnElement="Collaboration_Process_ToBe_Sorteo_v3"><bpmndi:BPMNShape id="Participant_Process_ToBe_Sorteo_v3_di" bpmnElement="Participant_Process_ToBe_Sorteo_v3" isHorizontal="true"><dc:Bounds x="0" y="0" width="2418" height="780"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_Cliente_di" bpmnElement="Lane_Cliente" isHorizontal="true"><dc:Bounds x="30" y="0" width="2388" height="170"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_Administrador_di" bpmnElement="Lane_Administrador" isHorizontal="true"><dc:Bounds x="30" y="170" width="2388" height="170"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_Operador_di" bpmnElement="Lane_Operador" isHorizontal="true"><dc:Bounds x="30" y="340" width="2388" height="270"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_Sistema_di" bpmnElement="Lane_Sistema" isHorizontal="true"><dc:Bounds x="30" y="610" width="2388" height="170"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Sorteo_di" bpmnElement="Start_Sorteo">
+        <dc:Bounds x="114" y="67" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Entregar_di" bpmnElement="T_Entregar">
+        <dc:Bounds x="214" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Cargar_di" bpmnElement="T_Cargar">
+        <dc:Bounds x="396" y="215" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Validar_di" bpmnElement="T_Validar">
+        <dc:Bounds x="578" y="655" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Valida_di" bpmnElement="G_Valida" isMarkerVisible="true">
+        <dc:Bounds x="760" y="670" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="737" y="723" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Corregir_di" bpmnElement="T_Corregir">
+        <dc:Bounds x="872" y="45" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Mod_di" bpmnElement="G_Mod" isMarkerVisible="true">
+        <dc:Bounds x="907" y="450" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="884" y="415" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Operar_di" bpmnElement="T_Operar">
+        <dc:Bounds x="1054" y="435" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_ValidaCamb_di" bpmnElement="T_ValidaCamb">
+        <dc:Bounds x="1236" y="655" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Permit_di" bpmnElement="G_Permit" isMarkerVisible="true">
+        <dc:Bounds x="1418" y="670" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="1395" y="723" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Rechazar_di" bpmnElement="T_Rechazar">
+        <dc:Bounds x="1530" y="367.5" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Config_di" bpmnElement="T_Config">
+        <dc:Bounds x="1530" y="502.5" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Alcanza_di" bpmnElement="G_Alcanza" isMarkerVisible="true">
+        <dc:Bounds x="1712" y="670" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="1689" y="723" width="96" height="46"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Ajustar_di" bpmnElement="T_Ajustar">
+        <dc:Bounds x="1824" y="435" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Seleccionar_di" bpmnElement="T_Seleccionar">
+        <dc:Bounds x="1824" y="655" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Mostrar_di" bpmnElement="T_Mostrar">
+        <dc:Bounds x="2006" y="435" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Otra_di" bpmnElement="G_Otra" isMarkerVisible="true">
+        <dc:Bounds x="2188" y="450" width="50" height="50"/>
+      <bpmndi:BPMNLabel><dc:Bounds x="2165" y="415" width="96" height="32"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Sorteo_di" bpmnElement="End_Sorteo">
+        <dc:Bounds x="2302" y="457" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F_s2_di" bpmnElement="F_s2"><di:waypoint x="334" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="374" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="374" y="255" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="396" y="255" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s3_di" bpmnElement="F_s3"><di:waypoint x="516" y="255" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="556" y="255" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="556" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="578" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s4_di" bpmnElement="F_s4"><di:waypoint x="698" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="760" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_val_si_di" bpmnElement="F_val_si"><di:waypoint x="810" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="885" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="885" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="907" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="818" y="675" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_val_no_di" bpmnElement="F_val_no"><di:waypoint x="785" y="670" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="785" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="872" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="755" y="650" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_s5_di" bpmnElement="F_s5"><di:waypoint x="932" y="125" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="932" y="159" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="456" y="159" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="456" y="215" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g2_di" bpmnElement="F_g2"><di:waypoint x="1174" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1214" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1214" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1236" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g3_di" bpmnElement="F_g3"><di:waypoint x="1356" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1418" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_perm_si_di" bpmnElement="F_perm_si"><di:waypoint x="1468" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1508" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1508" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1530" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="1476" y="675" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_perm_no_di" bpmnElement="F_perm_no"><di:waypoint x="1443" y="670" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1443" y="407.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1530" y="407.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="1413" y="650" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_g4_di" bpmnElement="F_g4"><di:waypoint x="1590" y="367.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1590" y="351" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1114" y="351" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1114" y="435" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_mod_si_di" bpmnElement="F_mod_si"><di:waypoint x="957" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1054" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="965" y="455" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_mod_no_di" bpmnElement="F_mod_no"><di:waypoint x="957" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="971" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="971" y="599" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1516" y="599" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1516" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1530" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="978" y="483" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n3_di" bpmnElement="F_n3"><di:waypoint x="1650" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1690" y="542.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1690" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1712" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_alc_si_di" bpmnElement="F_alc_si"><di:waypoint x="1762" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1824" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="1770" y="675" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_alc_no_di" bpmnElement="F_alc_no"><di:waypoint x="1737" y="670" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1737" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1824" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="1707" y="650" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n4_di" bpmnElement="F_n4"><di:waypoint x="1884" y="515" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1884" y="591" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1590" y="591" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1590" y="582.5" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n5_di" bpmnElement="F_n5"><di:waypoint x="1944" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1984" y="695" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="1984" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="2006" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_n6_di" bpmnElement="F_n6"><di:waypoint x="2126" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="2188" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_otra_si_di" bpmnElement="F_otra_si"><di:waypoint x="2213" y="500" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="2213" y="583" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="932" y="583" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="932" y="500" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="2220" y="508" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_otra_no_di" bpmnElement="F_otra_no"><di:waypoint x="2238" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="2302" y="475" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><bpmndi:BPMNLabel><dc:Bounds x="2246" y="455" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge><bpmndi:BPMNEdge id="F_x1_di" bpmnElement="F_x1"><di:waypoint x="150" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/><di:waypoint x="214" y="85" xmlns:di="http://www.omg.org/spec/DD/20100524/DI"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
