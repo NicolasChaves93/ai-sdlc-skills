@@ -39,6 +39,9 @@ El hook se activa a mano en `~/.claude/settings.json`:
 ## Incremento por proyecto
 `./setup.sh --init internal|client <proyecto>` crea `.sdlc/` y activa las compuertas del incremento (estas bloquean). Sin `.sdlc/state.json` no se aplican. Son de Claude Code: Gemini no ejecuta el hook.
 
+## Estándar de diagramas
+Procesos en BPMN (reglas en `sim-template/bpmnlintrc.json`, validación con `sim-template/lint.sh`); los demás UML en draw.io. `setup.sh <proyecto>` deja `.bpmnlintrc` en el proyecto.
+
 ## Compuertas del hook
 
 Estas cuatro piden confirmación.

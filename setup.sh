@@ -61,6 +61,8 @@ for target in "$@"; do
     keep "$(readlink -f "$f")"
   fi
   cp "$REPO/AGENTS.template.md" "$f"
+  # reglas de diagramas para el editor; no pisa una configuración propia del proyecto
+  [ -e "$target/.bpmnlintrc" ] || cp "$REPO/sim-template/bpmnlintrc.json" "$target/.bpmnlintrc"
   [ -e "$target/CLAUDE.md" ] || [ -L "$target/CLAUDE.md" ] || ln -s AGENTS.md "$target/CLAUDE.md"
   echo "reglas: $f"
 done

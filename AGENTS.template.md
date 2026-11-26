@@ -57,4 +57,5 @@ El traspaso se hace por archivos del proyecto, no por la conversación:
 5. Si cambia el alcance aprobado con el cliente, pon `"phase_3_adr_approved": false` y escala a Fases 1–3.
 
 ## 6. Convenciones
+- **Diagramas:** los procesos se entregan en BPMN (`.bpmn`), dibujados a mano con un carril por rol, divididos según cuándo ocurren y numerados por orden y nivel (`1.0_`, `2.0_`, `2.1_`, `2.1.1_`). Deben pasar `~/proyectos/ai-sdlc-skills/sim-template/lint.sh <archivo>` sin errores ni avisos (reglas: `.bpmnlintrc`). Los demás diagramas UML (casos de uso, estados, dominio, secuencia) van en draw.io (`.drawio`).
 - Conversación y Notion en **español**; código, ramas, commits y carpetas (`api-<proyecto>`, `app-<proyecto>`, `infra-<proyecto>`) en **inglés**.
