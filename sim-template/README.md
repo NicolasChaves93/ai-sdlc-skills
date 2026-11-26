@@ -49,3 +49,11 @@ Sin comprobar: que los tiempos de las compuertas paralelas se solapen. El botón
 
 ## Pendiente (alcance actual: solo el sorteo)
 Trivia: `contadores`/`derivados` del escenario, multi-instancia de participantes y temporizadores sobre subprocesos (el reloj simulado está probado pero aún no conectado al motor).
+
+## Simular todo o una parte
+Si `workspace.json` declara `partes`, el simulador muestra una lista para elegir qué simular. Cada parte es una subcarpeta con su propio `workspace.json`, `build/` y `scenarios/`:
+
+```json
+"partes": [{"id": "preparacion", "nombre": "1. Preparación", "carpeta": "partes/preparacion"}]
+```
+Con `"ui": {"vista": "subprocesos"}` abre directamente la vista por subprocesos; `"ui": {"raiz": "<id del subproceso>"}` entra además en ese subproceso (útil en cada parte).

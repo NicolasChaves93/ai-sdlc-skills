@@ -68,7 +68,10 @@ async function abrir(vista = S.vista) {
   pausar(); cerrarVivo(); S.vista = S.xmlUsuario ? 'plana' : vista;
   S.xml = S.xmlUsuario || (S.vista === 'plana' ? XML_PLANO : XML_JER);
   S.model = await parseModel(S.xml); if (!S.sc) cargarGuardado(); S.sel = null; S.marks.clear(); S.cuellos.clear();
-  await viewer.importXML(S.xml); dibujarCarriles(); ajustarVista();
+  await viewer.importXML(S.xml);
+  const inicio = S.vista === 'subprocesos' && !S.xmlUsuario && UI.raiz && canvas.findRoot(UI.raiz + '_plane');     // una parte se abre ya por dentro
+  if (inicio) canvas.setRootElement(inicio);
+  dibujarCarriles(); ajustarVista();
   crearOverlays(); pintarParams(); pintarCondiciones(); pintarControles(); verPaso(null); pintarPruebas(); await simular();
 }
 function pintarControles() {
@@ -486,12 +489,20 @@ $('btnEscExport').onclick = () => { const o = clone(S.sc); for (const [k, v] of 
 $('fileEsc').onchange = async e => { const f = e.target.files[0]; if (!f) return; e.target.value = ''; try { S.base = JSON.parse(await f.text()); localStorage.removeItem(KEY); S.sc = null; await abrir(); } catch (x) { alert('No pude leer el escenario: ' + x.message); } };
 $('btnReset').onclick = () => { localStorage.removeItem(KEY); S.sc = null; S.xmlUsuario = null; S.base = BASE; S.forzar = {}; S.modo = 'azar'; S.perfil = 'uniforme'; S.semilla = 7; abrir('plana'); };
 
+// ---------- partes del proyecto (workspace.json → partes): se elige qué simular ----------
+function pintarPartes(p) {
+  const sel = $('parte'); if (!p.partes?.length) return;
+  sel.innerHTML = ''; sel.append(el('option', { value: '', textContent: 'Simular: todo el proceso' }), ...p.partes.map(x => el('option', { value: x.id, textContent: 'Simular: ' + x.nombre })));
+  sel.value = p.parte || ''; sel.hidden = false;
+  sel.onchange = () => { location.search = sel.value ? '?parte=' + encodeURIComponent(sel.value) : ''; };
+}
+
 // ---------- arranque (con enlaces directos para pruebas) ----------
 const q = new URLSearchParams(location.search);
 (async function iniciar() {
-  try { const h = await api.health(); const p = await api.project(); XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; MODELO = p.modelo; UI = p.ui || {}; KEY = 'simv2:' + MODELO; document.title = `${p.nombre} · Simulador de procesos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
+  try { const h = await api.health(); const p = await api.project(q.get('parte')); pintarPartes(p); XML_PLANO = p.modelos.plana; XML_JER = p.modelos.subprocesos; BASE = p.escenario; CARRILES = p.carriles || {}; S.base = BASE; MODELO = p.modelo; UI = p.ui || {}; KEY = 'simv2:' + MODELO + (p.parte ? ':' + p.parte : ''); document.title = `${p.nombre} · Simulador de procesos`; $('motor').textContent = `Motor: Python · SimPy ${h.versiones.simpy} · SpiffWorkflow ${h.versiones.SpiffWorkflow}`; }
   catch (e) { document.body.innerHTML = `<div style="padding:40px;font:15px system-ui;max-width:640px"><h2>No hay conexión con el motor del simulador</h2><p>${e.message}</p><p>Inícialo con <code>sim-template/run.sh</code> y abre <code>http://127.0.0.1:8099</code> (no abras el archivo index.html directamente).</p></div>`; return; }
-  await abrir(q.get('vista') === 'sub' ? 'subprocesos' : 'plana');
+  await abrir((q.get('vista') || (UI.vista === 'subprocesos' ? 'sub' : '')) === 'sub' ? 'subprocesos' : 'plana');
   for (const [k, v] of q) if (k in S.sc.params) S.params[k] = Number(v);
   if (q.get('modo')) S.modo = q.get('modo'); if (q.get('perfil')) S.perfil = q.get('perfil'); if (q.get('semilla')) S.semilla = Number(q.get('semilla'));
   if (q.get('metrica')) { S.metrica = q.get('metrica'); $('metrica').value = S.metrica; }

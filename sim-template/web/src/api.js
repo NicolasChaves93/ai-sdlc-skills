@@ -6,7 +6,7 @@ async function call(method, path, body) {
   return j;
 }
 export const health = () => call('GET', '/api/health');
-export const project = () => call('GET', '/api/project');
+export const project = parte => call('GET', '/api/project' + (parte ? '?parte=' + encodeURIComponent(parte) : ''));
 export const simulate = b => call('POST', '/api/simulate', b);
 export const liveCreate = b => call('POST', '/api/live/create', b);
 export const liveAdvance = (id, hasta, completo) => call('POST', '/api/live/advance', { id, hasta, completo: !!completo });

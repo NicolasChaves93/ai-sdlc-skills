@@ -15,7 +15,7 @@ import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "engine"))
@@ -40,13 +40,21 @@ class Workspace:
         cfg = json.loads(_read(os.path.join(self.root, "workspace.json")))
         self.cfg = cfg
 
-    def project(self):
+    def project(self, part=None):
+        """«partes» en workspace.json: subcarpetas con su propio workspace que se pueden simular por separado."""
+        parts = self.cfg.get("partes", [])
+        listing = [{"id": p["id"], "nombre": p["nombre"]} for p in parts]
+        if part:
+            found = next((p for p in parts if p["id"] == part), None)     # solo carpetas declaradas: la URL no elige rutas
+            if not found:
+                raise KeyError(f"la parte «{part}» no está en workspace.json")
+            return {**Workspace(os.path.join(self.root, found["carpeta"])).project(), "partes": listing, "parte": part}
         m, b = self.cfg["model"], os.path.join(self.root, "build")
         lanes = os.path.join(b, f"{m}_lanes.json")
         return {"nombre": self.cfg.get("name", m), "escenario": json.loads(_read(os.path.join(self.root, self.cfg["scenario"]))),
                 "modelos": {"plana": _read(os.path.join(b, f"{m}_flat.bpmn")), "subprocesos": _read(os.path.join(b, f"{m}_hier.bpmn"))},
                 "carriles": json.loads(_read(lanes)) if os.path.exists(lanes) else {},
-                "modelo": m, "ui": self.cfg.get("ui", {})}
+                "modelo": m, "ui": self.cfg.get("ui", {}), "partes": listing, "parte": None}
 
 
 def _build_sim(body, live=False, on_move=None):
@@ -171,7 +179,7 @@ def make_handler(ws, web_dir, port):
                 return self._send(200, {"ok": True, "motor": "python", "versiones": {p: md.version(p) for p in ("simpy", "SpiffWorkflow")}})
             if path == "/api/project":
                 try:
-                    return self._send(200, ws.project())
+                    return self._send(200, ws.project(parse_qs(urlparse(self.path).query).get("parte", [None])[0]))
                 except (OSError, KeyError, ValueError) as e:
                     return self._send(500, {"error": f"el espacio de trabajo no está listo ({e}); ejecuta la preparación de modelos"})
             if path.startswith("/api/"):

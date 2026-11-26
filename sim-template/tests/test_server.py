@@ -29,7 +29,12 @@ class Api(unittest.TestCase):
         shutil.copy(os.path.join(F, "sorteo_flat.bpmn"), os.path.join(cls.tmp, "build", "sorteo_flat.bpmn"))
         shutil.copy(os.path.join(F, "sorteo_hier.bpmn"), os.path.join(cls.tmp, "build", "sorteo_hier.bpmn"))
         with open(os.path.join(cls.tmp, "workspace.json"), "w") as fh:
-            json.dump({"name": "prueba", "model": "sorteo", "scenario": "scenarios/sorteo.json"}, fh)
+            json.dump({"name": "prueba", "model": "sorteo", "scenario": "scenarios/sorteo.json", "partes": [{"id": "una", "nombre": "Una parte", "carpeta": "partes/una"}]}, fh)
+        part = os.path.join(cls.tmp, "partes", "una")
+        shutil.copytree(os.path.join(cls.tmp, "build"), os.path.join(part, "build"))
+        shutil.copytree(os.path.join(cls.tmp, "scenarios"), os.path.join(part, "scenarios"))
+        with open(os.path.join(part, "workspace.json"), "w") as fh:
+            json.dump({"name": "solo una", "model": "sorteo", "scenario": "scenarios/sorteo.json"}, fh)
         web = os.path.join(cls.tmp, "web")
         os.makedirs(web)
         with open(os.path.join(web, "index.html"), "w") as fh:
@@ -55,6 +60,14 @@ class Api(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read())
 
+    def test_partes(self):
+        code, whole = self.call("/api/project")
+        self.assertEqual((code, whole["parte"], whole["partes"]), (200, None, [{"id": "una", "nombre": "Una parte"}]))
+        code, part = self.call("/api/project?parte=una")
+        self.assertEqual((code, part["nombre"], part["parte"], len(part["partes"])), (200, "solo una", "una", 1))
+        for bad in ("otra", "../..", "partes/una"):
+            self.assertEqual(self.call(f"/api/project?parte={bad}")[0], 500, bad)
+
     def sim_body(self, **kw):
         return {"xml": self.xml, "escenario": self.sc, "params": {"K": 3, "RONDAS": 2}, **kw}
 
@@ -63,7 +76,7 @@ class Api(unittest.TestCase):
         self.assertEqual((code, h["motor"]), (200, "python"))
         code, p = self.call("/api/project")
         self.assertEqual(code, 200)
-        self.assertEqual(set(p), {"nombre", "escenario", "modelos", "carriles", "modelo", "ui"})
+        self.assertEqual(set(p), {"nombre", "escenario", "modelos", "carriles", "modelo", "ui", "partes", "parte"})
         self.assertIn("plana", p["modelos"])
         code, raw = self.call("/")
         self.assertEqual(code, 200)
