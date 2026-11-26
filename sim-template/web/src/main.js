@@ -74,7 +74,7 @@ async function abrir(vista = S.vista) {
   const inicio = S.vista === 'subprocesos' && !S.xmlUsuario && UI.raiz && canvas.findRoot(UI.raiz + '_plane');     // una parte se abre ya por dentro
   if (inicio) canvas.setRootElement(inicio);
   dibujarCarriles(); ajustarVista();
-  crearOverlays(); pintarParams(); pintarCondiciones(); pintarControles(); verPaso(null); pintarPruebas(); await simular();
+  crearOverlays(); pintarParams(); pintarCondiciones(); pintarControles(); verPaso(null); pintarPruebas(); pintarCambios(); await simular();
 }
 function pintarControles() {
   const vivo = !!S.live;
@@ -134,7 +134,7 @@ function pintarParams() {
   marcar();
 }
 
-let tmr = null; function cambio() { guardar(); $('pruebasRes')?.classList.add('viejo'); clearTimeout(tmr); tmr = setTimeout(async () => { if (S.live) iniciarVivo(true); else { await simular(); if (S.sel) verPaso(S.sel); } }, 120); }
+let tmr = null; function cambio() { guardar(); pintarCambios(); $('pruebasRes')?.classList.add('viejo'); clearTimeout(tmr); tmr = setTimeout(async () => { if (S.live) iniciarVivo(true); else { await simular(); if (S.sel) verPaso(S.sel); } }, 120); }
 
 // ---------- simulación (análisis completo) ----------
 async function simular(reintento) {
@@ -499,7 +499,8 @@ function pintarExplorar(box) {
   const boton = el('button', { id: 'btnExplorar', className: 'primario', textContent: 'Generar escenarios' });
   boton.onclick = async () => {
     boton.disabled = true; dest.innerHTML = ''; dest.append(el('p', { className: 'hint', textContent: 'Calculando… puede tardar cerca de un minuto.' }));
-    try { pintarExploracion(dest, await api.explore(peticion({ cuantos: Number(cuantos.value), variacion: Number(variacion.value), tiempos: tiempos.checked, meta: meta.value ? Number(meta.value) * 60 : null }))); }
+    const partida = { elementos: clone(S.sc.elementos), params: { ...S.params } };     // cada escenario se aplica sobre esto, no sobre el anterior
+    try { pintarExploracion(dest, partida, await api.explore(peticion({ cuantos: Number(cuantos.value), variacion: Number(variacion.value), tiempos: tiempos.checked, meta: meta.value ? Number(meta.value) * 60 : null }))); }
     catch (e) { dest.innerHTML = ''; dest.append(el('p', { className: 'hint', textContent: 'No se pudo calcular: ' + e.message })); }
     boton.disabled = false;
   };
@@ -508,12 +509,12 @@ function pintarExplorar(box) {
     campo('Cuántos escenarios', cuantos), campo('Cuánto pueden cambiar', variacion),
     el('label', { className: 'chk' }, tiempos, ' Variar también el tiempo de cada paso'), campo('Meta: duración máxima (minutos)', meta), boton, dest);
 }
-function aplicarEscenario(x) {
-  S.sc = clone(S.sc); Object.assign(S.params, x.params);
-  for (const [id, f] of Object.entries(x.factores)) { const c = S.sc.elementos[id]; c.escala = c.escala == null ? f : `(${c.escala})*${f}`; }
-  pintarParams(); cambio(); aviso('Escenario aplicado. Con ⟲ vuelves a los valores base.');
+function aplicarEscenario(x, partida) {
+  S.sc = clone(S.sc); S.sc.elementos = clone(partida.elementos); S.params = { ...partida.params, ...x.params };
+  for (const [id, f] of Object.entries(x.factores)) escalarPaso(S.sc.elementos[id], f);
+  pintarParams(); cambio(); abrirCambios(true); aviso('Escenario aplicado. Compara y ajusta en la ventana de cambios; con ⟲ vuelves a la base.', 7000);
 }
-function pintarExploracion(dest, r) {
+function pintarExploracion(dest, partida, r) {
   dest.innerHTML = ''; const d = r.duracion; const num = v => Number(v).toLocaleString('es', { maximumFractionDigits: 3 });
   dest.append(el('p', { style: 'margin-top:10px', textContent: `En ${r.escenarios} escenarios: mínimo ${hm(d.minimo)} · mediana ${hm(d.mediana)} · 9 de cada 10 hasta ${hm(d.p90)} · máximo ${hm(d.maximo)}.` }));
   if (r.meta) {
@@ -524,7 +525,7 @@ function pintarExploracion(dest, r) {
   dest.append(el('h2', { textContent: 'Supuestos que más pesan', style: 'margin-top:12px' }), pesan);
   for (const [titulo, lista] of [['Mejores escenarios', r.mejores], ['Peores escenarios', r.peores]]) {
     dest.append(el('h2', { textContent: titulo, style: 'margin-top:12px' }));
-    lista.forEach((x, i) => dest.append(el('div', { className: 'fila' }, el('span', { textContent: `${i + 1}. ${hm(x.duracion)}` }), el('button', { textContent: 'Aplicar en pantalla', onclick: () => aplicarEscenario(x) }))));
+    lista.forEach((x, i) => dest.append(el('div', { className: 'fila' }, el('span', { textContent: `${i + 1}. ${hm(x.duracion)}` }), el('button', { textContent: 'Aplicar en pantalla', onclick: () => aplicarEscenario(x, partida) }))));
   }
 }
 async function comparar() {
@@ -647,7 +648,7 @@ async function cargarEscenario(id) {
   const faltan = Object.keys(sc.params).filter(k => !(k in g.params));
   S.params = Object.fromEntries(Object.entries(sc.params).map(([k, d]) => [k, k in g.params ? g.params[k] : d.valor]));
   S.modo = g.modo || 'azar'; S.perfil = g.perfil || 'uniforme'; S.semilla = g.semilla ?? 7; S.forzar = g.forzar || {};
-  pintarCondiciones(); pintarControles(); pintarParams(); verPaso(null); cambio(); mostrarTab('guardados');
+  pintarCondiciones(); pintarControles(); pintarParams(); verPaso(null); cambio(); abrirCambios(true); mostrarTab('guardados');
   aviso(`Cargado «${g.nombre}». Ajusta lo que quieras y usa «Comparar con lo de ahora».` + (faltan.length ? ` ${faltan.length} parámetro(s) nuevos quedaron con su valor base.` : ''), 8000);
 }
 function pintarComparacion(dest, c) {
@@ -662,6 +663,64 @@ function pintarComparacion(dest, c) {
   dest.append(el('p', { className: 'hint', textContent: cambios.length ? 'Cambiaste: ' + cambios.join(' · ') : 'No cambiaste valores respecto a lo guardado.' }));
   if (c.diagrama_cambio) dest.append(el('p', { className: 'hint', textContent: 'Ojo: el diagrama también cambió desde que se guardó, así que la diferencia no viene solo de tus ajustes.' }));
 }
+
+// ---------- ventana de cambios: base contra lo que está en pantalla ----------
+const TIEMPOS = ['valor', 'media', 'moda', 'min', 'max'];
+const numerico = v => v === undefined || v === null || (typeof v === 'number' && isFinite(v));
+const tipico = d => typeof d === 'number' ? d : d && [d.valor, d.media, d.moda, (d.min + d.max) / 2].find(v => typeof v === 'number' && isFinite(v));
+const redondo = v => +Number(v).toPrecision(3);
+function escalarPaso(cfg, f) {         // en segundos cuando se puede; si el paso ya depende de un parámetro, como multiplicador
+  const d = cfg.dur;
+  if (cfg.escala == null && typeof d === 'number') cfg.dur = redondo(d * f);
+  else if (cfg.escala == null && d && TIEMPOS.every(k => numerico(d[k]))) cfg.dur = { ...d, ...Object.fromEntries(TIEMPOS.filter(k => typeof d[k] === 'number').map(k => [k, redondo(d[k] * f)])) };
+  else cfg.escala = cfg.escala == null ? redondo(f) : typeof cfg.escala === 'number' ? redondo(cfg.escala * f) : String(cfg.escala).startsWith('(') ? `${cfg.escala}*${redondo(f)}` : `(${cfg.escala})*${redondo(f)}`;
+}
+const sinDetalle = c => JSON.stringify({ ...(c || {}), detalle: undefined });
+function factorSobre(escala, base) {       // «(B*0.002)*0.8» sobre «B*0.002» → 0.8
+  const pre = `(${base})*`; if (base == null || typeof escala !== 'string' || !escala.startsWith(pre)) return null;
+  const partes = escala.slice(pre.length).split('*').map(Number); return partes.every(isFinite) ? redondo(partes.reduce((a, b) => a * b, 1)) : null;
+}
+function listaCambios() {
+  if (!S.sc) return [];
+  const out = [];
+  for (const [k, d] of Object.entries(S.sc.params)) {
+    const base = S.base.params[k]?.valor;
+    if (S.params[k] !== base) out.push({ nombre: d.etiqueta, base, ahora: S.params[k], poner: v => { S.params[k] = v; pintarParams(); }, volver: () => { S.params[k] = base; pintarParams(); } });
+  }
+  for (const [id, c] of Object.entries(S.sc.elementos)) {
+    const b = S.base.elementos[id] || {};
+    if (sinDetalle(c) === sinDetalle(b)) continue;
+    const nombre = S.model?.els[id]?.name || id; const volver = () => { S.sc.elementos[id] = clone(b); };
+    const antes = tipico(b.dur), ahora = tipico(c.dur);
+    const soloTiempo = antes > 0 && ahora > 0 && sinDetalle({ ...c, dur: 0, escala: 0 }) === sinDetalle({ ...b, dur: 0, escala: 0 });
+    if (soloTiempo && String(c.escala ?? '') === String(b.escala ?? ''))
+      out.push({ nombre: `Tiempo de «${nombre}» (s)`, base: redondo(antes), ahora: redondo(ahora), poner: v => { if (v > 0) escalarPaso(S.sc.elementos[id], v / tipico(S.sc.elementos[id].dur)); }, volver });
+    else if (soloTiempo && antes === ahora && factorSobre(c.escala, b.escala))
+      out.push({ nombre: `Tiempo de «${nombre}» (veces el de la base)`, base: 1, ahora: factorSobre(c.escala, b.escala), volver,
+        poner: v => { if (v > 0) S.sc.elementos[id].escala = v === 1 ? b.escala : `(${b.escala})*${v}`; } });
+    else out.push({ nombre: `Paso «${nombre}»`, base: 'como estaba', ahora: c.escala !== b.escala ? `multiplicador ${c.escala}` : 'ajustado en «Paso»', volver, ver: () => ir(id) });
+  }
+  if (Object.keys(S.forzar).length) out.push({ nombre: 'Caminos forzados', base: 0, ahora: Object.keys(S.forzar).length, volver: () => { S.forzar = {}; } });
+  return out;
+}
+function pintarCambios() {
+  const lista = listaCambios(); $('btnCambios').textContent = `Cambios (${lista.length})`;
+  const box = $('cambios'); if (box.hidden) return; box.innerHTML = '';
+  box.append(el('div', { className: 'cab' }, el('b', { textContent: 'Cambios frente a la base' }), el('button', { textContent: '✕', title: 'Cerrar', onclick: () => abrirCambios(false) })));
+  if (!lista.length) { box.append(el('p', { className: 'hint', textContent: 'Todo está en los valores base. Mueve un valor o aplica un escenario y aparecerá aquí.' })); return; }
+  const t = el('table', { className: 'tbl' }, el('tr', {}, ...['Qué', 'Base', 'Ahora', ''].map(h => el('th', { textContent: h }))));
+  for (const c of lista) {
+    let ahora;
+    if (c.poner) { ahora = el('input', { type: 'number', value: c.ahora, step: 'any' }); ahora.onchange = () => { const v = Number(ahora.value); if (ahora.value !== '' && isFinite(v)) { c.poner(v); cambio(); verPaso(S.sel); } }; }
+    else ahora = c.ver ? el('button', { textContent: String(c.ahora), onclick: c.ver }) : el('span', { textContent: String(c.ahora) });
+    t.append(el('tr', {}, el('td', { textContent: c.nombre }), el('td', { textContent: c.base.toLocaleString('es') }), el('td', {}, ahora),
+      el('td', {}, el('button', { textContent: '↺', title: 'Volver este a la base', onclick: () => { c.volver(); cambio(); verPaso(S.sel); } }))));
+  }
+  box.append(t, el('div', { className: 'pie' }, el('button', { textContent: 'Guardar este escenario…', onclick: () => mostrarTab('guardados') }),
+    el('button', { textContent: 'Todo a la base', onclick: () => $('btnReset').click() })));
+}
+function abrirCambios(abierta = $('cambios').hidden) { $('cambios').hidden = !abierta; pintarCambios(); }
+$('btnCambios').onclick = () => abrirCambios();
 
 // ---------- arranque (con enlaces directos para pruebas) ----------
 const q = new URLSearchParams(location.search);
@@ -681,7 +740,7 @@ const q = new URLSearchParams(location.search);
   if (q.get('correr') === 'analisis') await analizar();
   if (q.get('cargar')) await cargarEscenario(q.get('cargar'));
   if (q.get('correr') === 'comparar-guardado') { mostrarTab('guardados'); while (!document.querySelector('button.comparar')) await new Promise(r => setTimeout(r, 300)); document.querySelector('button.comparar').click(); }
-  if (q.get('correr') === 'explorar') { $('btnExplorar').click(); while ($('btnExplorar').disabled) await new Promise(r => setTimeout(r, 500)); }
+  if (q.get('correr') === 'explorar') { $('btnExplorar').click(); while ($('btnExplorar').disabled) await new Promise(r => setTimeout(r, 500)); if (q.get('aplicar')) [...document.querySelectorAll('#pruebas button')].find(b => b.textContent === 'Aplicar en pantalla')?.click(); if (q.get('aplicar') === '2') { const antes = JSON.stringify([S.sc.elementos, S.params]); [...document.querySelectorAll('#pruebas button')].find(b => b.textContent === 'Aplicar en pantalla').click(); document.body.dataset.repetible = String(antes === JSON.stringify([S.sc.elementos, S.params])); } }
   document.body.dataset.listo = '1';
 })();
 window.__sim = { S, viewer };

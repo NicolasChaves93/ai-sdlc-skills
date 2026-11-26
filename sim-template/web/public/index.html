@@ -38,6 +38,7 @@
   <section id="centro">
     <div id="barra">
       <select id="parte" title="Qué simular: todo el proceso o solo una parte" hidden></select>
+      <button id="btnCambios" title="Valores que cambiaste frente a la base: verlos y moverlos">Cambios (0)</button>
       <label>Mapa de calor
         <select id="metrica">
           <option value="esperaTotal">Espera acumulada (suma de todos)</option>
@@ -51,6 +52,7 @@
       <span class="sp"></span><span class="hint">Clic en un paso para ver y editar · en una compuerta puedes forzar el camino</span>
     </div>
     <div id="canvas"></div>
+    <div id="cambios" hidden></div>
     <div id="player">
       <input id="scrub" type="range" min="0" max="1000" value="0">
       <span id="etqVivo" hidden>● EN VIVO · reloj simulado</span>

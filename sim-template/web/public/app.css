@@ -70,3 +70,7 @@ button.primario{background:var(--accent);border-color:var(--accent);color:#fff}b
 .tbl.ajusta{width:100%;table-layout:fixed}.tbl.ajusta th,.tbl.ajusta td{white-space:normal;overflow-wrap:anywhere;vertical-align:top}.tbl.ajusta th:not(:first-child),.tbl.ajusta td:not(:first-child){width:56px}.tbl.ajusta th:first-child{width:56%}
 .guardado .fila{margin-top:6px;gap:6px}.guardado{cursor:default}
 .sug{cursor:default}.sug button{margin-top:4px}
+#centro{position:relative}#cambios{position:absolute;left:12px;right:12px;bottom:52px;max-height:48%;overflow:auto;background:#fff;border:1px solid #9aa6c4;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:0 10px 10px;z-index:20}
+#cambios .cab{position:sticky;top:0;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:8px 0}#cambios .tbl{width:100%}#cambios .tbl th,#cambios .tbl td{text-align:left;white-space:normal;vertical-align:middle}
+#cambios input{width:90px}#cambios .pie{display:flex;gap:8px;margin-top:8px}
+#barra{flex-wrap:wrap;row-gap:6px}#barra .hint{display:none}@media(min-width:1900px){#barra .hint{display:inline}}#metrica{max-width:190px}
