@@ -12,8 +12,14 @@
 4. Levels in order: <project>/.sdlc-state.json ({"level": 2}) says the current level;
    writing code that belongs to a later level asks for confirmation. No file, no check.
 
-Decision is always "ask" (never silent deny): Notion ADRs can't be checked from
-here, and the freeze may be lifted only with explicit user confirmation.
+5. Increment state, only when <project>/.sdlc/state.json exists (these BLOCK):
+   client proposal not approved; src/ or tests/ without closed stories (and, from
+   level 2, an approved and accepted ADR); git commit/push with pending doc sync or
+   untested increment; deploy before "freeze_until". Editing state.json asks, so
+   approvals stay with the user. Bash redirections are not inspected.
+
+Gates 1-4 only "ask" (never silent deny): Notion ADRs can't be checked from here,
+and the 24h freeze may be lifted only with explicit user confirmation.
 No-op outside a project whose AGENTS.md contains "Zero-Skip Gates".
 
 .sdlc-freeze format (at the project root, next to AGENTS.md):
@@ -36,6 +42,7 @@ DEPLOY_RE = re.compile(
     r"alembic\s+upgrade|flyway\s+migrate|prisma\s+migrate|(fly|flyctl)\s+deploy|"
     r"render\s+deploy|kubectl\s+(apply|rollout)|terraform\s+apply|helm\s+(upgrade|install)|"
     r"supabase\s+(db\s+push|migration)|postman\s+workspace\s+push)\b")
+GIT_WRITE_RE = re.compile(r"\bgit" + OPTS + r"\s+(commit|push)\b")
 MIGRATION_RE = re.compile(r"(^|/)(migrations?|alembic/versions)/")
 
 
@@ -118,6 +125,73 @@ def has_code(d):
     return False
 
 
+def block(reason):
+    print(f"[SDLC GATE BLOCKED] {reason}", file=sys.stderr)
+    sys.exit(2)
+
+
+def load_state(root):
+    """Increment state, or None when the project has not opted in."""
+    f = root / ".sdlc" / "state.json"
+    if not f.is_file():
+        return None
+    try:
+        state = json.loads(f.read_text(encoding="utf-8"))
+        assert isinstance(state, dict) and isinstance(state.get("gates", {}), dict)
+        int(state.get("level", 2))
+    except (OSError, ValueError, TypeError, AssertionError):
+        return "invalid"
+    return state
+
+
+def has_accepted_adr(root, parts):
+    dirs = [root.joinpath(*parts[:i], "docs", "adr") for i in range(len(parts))]
+    return any(ADR_OK_RE.search(f.read_text(errors="ignore")) for d in dirs if d.is_dir() for f in d.glob("*.md"))
+
+
+def check_increment_write(root, path, state):
+    try:
+        rel = path.resolve().relative_to(root).as_posix()
+    except ValueError:
+        return
+    if rel == ".sdlc/state.json":
+        ask("Cambio en .sdlc/state.json: las aprobaciones de compuerta las confirma el usuario.")
+    if state == "invalid":
+        if not rel.startswith(".sdlc/"):
+            ask(".sdlc/state.json no es un JSON válido: las compuertas del incremento no se pueden comprobar.")
+        return
+    gates = state.get("gates", {})
+    if state.get("project_type") == "client" and not gates.get("proposal_approved"):
+        if not (rel == ".sdlc/00-idea-brief.md" or rel.startswith(".sdlc/proposal-")):
+            block("Proyecto de cliente sin propuesta aprobada ('proposal_approved': false). Cierra la pre-venta primero.")
+    parts = rel.split("/")
+    if not {"src", "tests"} & set(parts[:-1]):
+        return
+    if not gates.get("phase_1_2_stories") or not (root / ".sdlc/active/01-stories.md").is_file():
+        block("Fase 1-2 incompleta: faltan historias, reglas y Gherkin cerrados en .sdlc/active/01-stories.md.")
+    level = int(state.get("level", 2))
+    if level >= 2 and not (gates.get("phase_3_adr_approved") and has_accepted_adr(root, parts[:-1])):
+        block(f"Nivel {level}: se necesita 'phase_3_adr_approved' y un ADR aceptado en docs/adr/ antes de tocar código.")
+
+
+def check_increment_bash(state, cmd, now):
+    if not isinstance(state, dict):
+        return
+    if GIT_WRITE_RE.search(cmd):
+        if state.get("pending_doc_sync"):
+            block("Zero-Drift: registra el [AMENDMENT] en .sdlc/active/01-stories.md y pon 'pending_doc_sync': false.")
+        if not state.get("gates", {}).get("phase_4_5_tests_passed"):
+            block("Fase 5 incompleta: ejecuta las pruebas (test-runner) antes de hacer commit o push.")
+    until = state.get("freeze_until")
+    if until and DEPLOY_RE.search(cmd):
+        try:
+            end = datetime.fromisoformat(until)
+        except (ValueError, TypeError):
+            ask("'freeze_until' en .sdlc/state.json no es una fecha ISO válida.")
+        if now < (end if end.tzinfo else end.astimezone()):
+            block(f"Freeze activo hasta {until}: despliegue bloqueado.")
+
+
 def check_adr(root, path):
     try:
         rel = path.resolve().relative_to(root)
@@ -153,13 +227,17 @@ def is_business_artifact(root, path):
         return False
     return (path.suffix.lower() in BUSINESS_EXT
             or any(x.lower() in BUSINESS_DIRS for x in parts[:-1])
-            or bool(BUSINESS_NAME_RE.match(path.name)))
+            or bool(BUSINESS_NAME_RE.match(path.name))
+            or parts[-3:] == (".sdlc", "active", "01-stories.md"))
 
 
 def check_level(root, path):
+    state_file = root / ".sdlc" / "state.json"
+    if not state_file.is_file():
+        state_file = root / ".sdlc-state.json"      # formato anterior
     try:
         rel = path.resolve().relative_to(root).as_posix()
-        level = int(json.loads((root / ".sdlc-state.json").read_text())["level"])
+        level = int(json.loads(state_file.read_text())["level"])
     except (ValueError, KeyError, TypeError, OSError):
         return
     if path.suffix not in CODE_EXT:
@@ -167,7 +245,7 @@ def check_level(root, path):
     for needed, pattern in LEVEL_PATHS:
         if level < needed and pattern.search(rel):
             ask(f"Compuerta 'Niveles evolutivos': {rel} es de Nivel {needed} y el proyecto está en Nivel {level} "
-                "(.sdlc-state.json). Cierra el nivel actual antes de avanzar.")
+                "({state_file.name}). Cierra el nivel actual antes de avanzar.")
 
 
 def written_text(tool, inp):
@@ -204,9 +282,14 @@ def main():
         if not fp:
             return
         path = Path(fp)
-        root = project_root(path.parent if path.parent.exists() else cwd)
+        if not path.is_absolute():
+            path = Path(cwd) / path
+        root = project_root(next(d for d in path.parents if d.exists()))
         if not root:
             return
+        state = load_state(root)
+        if state is not None:
+            check_increment_write(root, path, state)
         check_adr(root, path)
         check_level(root, path)
         check_business(root, path, written_text(tool, inp))
@@ -217,7 +300,10 @@ def main():
     elif tool == "Bash":
         cmd = inp.get("command", "")
         root = project_root(cwd)
-        if not root or not DEPLOY_RE.search(cmd):
+        if not root:
+            return
+        check_increment_bash(load_state(root), cmd, now)
+        if not DEPLOY_RE.search(cmd):
             return
         fr = freeze_state(root, now)
         if fr:

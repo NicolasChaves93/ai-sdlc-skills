@@ -12,6 +12,9 @@ Before creating directories, boilerplate, or source code files:
 1. **Verify Phase 3 (`sdlc-architecture-design`) Completion:** Check the local repository for an accepted Stack ADR (`docs/adr/`); if there is none, check Notion (`PoCs y decisiones`) and copy the accepted one into `docs/adr/`.
 2. **If no Stack ADR / language decision exists yet:** **STOP immediately.** Do NOT guess a language (Python, Go, Java, .NET, JS/TS) and do NOT scaffold files. Instead, trigger **`sdlc-architecture-design`** first (running the Greenfield vs. `v1` diagnostic questions, evaluating Stack vs. Free-Tier/Hosting limits, and getting explicit user approval on the language and 5-level evolutionary plan).
 
+## Zero-Drift
+If implementation exposes a gap in a story or rule, follow the Zero-Drift protocol in `AGENTS.md` (`[AMENDMENT - YYYY-MM-DD]` in `.sdlc/active/01-stories.md`) before writing more code. Set `phase_4_5_tests_passed` only after a real test run, and reset it when code changes again.
+
 ## Dynamic Project Scoping (consult `NOTION_SCHEMA.md`)
 
 1. Identify the active `Proyecto` (`page_id`) in Notion and the active local Git repository directory.

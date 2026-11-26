@@ -2,6 +2,8 @@
 # Uso:
 #   ./setup.sh                      enlaza skills, agentes y NOTION_SCHEMA.md en ~/.claude y ~/.gemini
 #   ./setup.sh <proyecto> [sub...]  además copia AGENTS.template.md en cada carpeta indicada
+#   ./setup.sh --init internal|client <proyecto>
+#                                   además crea .sdlc/ y docs/adr/ y activa las compuertas del incremento
 # Nada se borra: lo que se reemplaza se mueve a ~/.sdlc-backup/<fecha>/.
 set -euo pipefail
 
@@ -37,6 +39,18 @@ done
 for f in "$REPO"/agents/*.md; do link "$f" "$HOME/.claude/agents/$(basename "$f")"; done
 link "$REPO/NOTION_SCHEMA.md" "$HOME/.claude/skills/NOTION_SCHEMA.md"
 link "$REPO/NOTION_SCHEMA.md" "$HOME/.gemini/skills/NOTION_SCHEMA.md"
+
+INIT=""
+if [ "${1:-}" = "--init" ]; then
+  INIT="${2:-}"
+  case "$INIT" in internal|client) shift 2 ;; *) echo "uso: --init internal|client <proyecto>" >&2; exit 1 ;; esac
+  [ $# -eq 1 ] && [ -d "$1" ] || { echo "--init necesita una sola carpeta existente" >&2; exit 1; }
+  mkdir -p "$1/.sdlc/active" "$1/.sdlc/history" "$1/docs/adr"
+  if [ ! -e "$1/.sdlc/state.json" ]; then
+    sed "s/\"project_type\": \"internal\"/\"project_type\": \"$INIT\"/" "$REPO/sdlc-state.template.json" > "$1/.sdlc/state.json"
+    echo "estado: $1/.sdlc/state.json (todas las compuertas sin aprobar)"
+  fi
+fi
 
 for target in "$@"; do
   [ -d "$target" ] || { echo "no existe: $target" >&2; exit 1; }

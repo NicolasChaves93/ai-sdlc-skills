@@ -56,7 +56,8 @@ No hook can check Notion, so this step is a manual gate: a level is not closed u
 3. **Write the closure documents** in `Documentos`: Sprint Review with the evidence (test counts, Postman, k6 thresholds) and Lessons Learned. Link them to the `Iteración`. Validate Mermaid before setting `Aprobado`; otherwise leave `Borrador`.
 4. **Move the phase last.** Only after steps 1–3 pass, set the `Proyecto` phase (`7 Cierre`, or the next phase for a continuing project) and the level/iteration status.
 5. **Verify by re-reading.** Re-query the same records and confirm the writes landed; a write call returning without error is not proof.
-6. **Report** to the user: records changed (ID or title, old → new value), findings left open, and anything skipped with the reason. If a check fails or Notion is unreachable, the level stays open and the report says so.
+6. **Archive the increment:** move `.sdlc/active/*` to `.sdlc/history/<increment_id>/` and, with the user's confirmation, reset `.sdlc/state.json` for the next increment. Include every `[AMENDMENT]` in the Notion sync.
+7. **Report** to the user: records changed (ID or title, old → new value), findings left open, and anything skipped with the reason. If a check fails or Notion is unreachable, the level stays open and the report says so.
 
 Writing to Notion is visible to other people: show the planned changes (step 2 table) and get the user's confirmation before step 2 on the first sync of a level. Never print the Notion token or paste it into any record.
 

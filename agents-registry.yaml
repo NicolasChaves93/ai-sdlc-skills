@@ -9,6 +9,7 @@ agents:
       - "Orquestación general del flujo SDLC y despacho de subtareas"
       - "Fase 4 (Construcción Hexagonal por niveles, dominio puro y adaptadores)"
       - "Fase 5 (TDD, tests unitarios/integración, colecciones Postman CLI y scripts k6)"
+      - "Pre-SDLC comercial: cotización para clientes externos (skill propuesta-comercial)"
       - "Fases 6-7 (Operación en vivo, compuerta de deploy y freeze 24h, SOP-NN, cierre, retrospectiva)"
       - "Refactoring arquitectónico y depuración sistemática"
     phases: [4, 5, 6, 7]

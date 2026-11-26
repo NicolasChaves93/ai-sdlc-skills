@@ -184,6 +184,81 @@ class Freeze(GateTest):
             self.assertEqual(self.bash("git push", cwd=d), "allow")
 
 
+class Increment(GateTest):
+    def setUp(self):
+        super().setUp()
+        (self.root / ".sdlc/active").mkdir(parents=True)
+
+    def state(self, level=2, project_type="internal", gates=(), **extra):
+        (self.root / ".sdlc/state.json").write_text(json.dumps(
+            {"level": level, "project_type": project_type, "gates": {g: True for g in gates}, **extra}))
+
+    def run_raw(self, tool, **inp):
+        r = subprocess.run([sys.executable, "-I", str(HOOK)], capture_output=True, text=True,
+                           input=json.dumps({"tool_name": tool, "cwd": str(self.root), "tool_input": inp}))
+        if r.returncode == 2:
+            return "block"
+        assert r.returncode == 0, r.stderr
+        return "ask" if r.stdout.strip() else "allow"
+
+    def edit(self, rel):
+        return self.run_raw("Edit", file_path=str(self.root / rel), new_string="x")
+
+    def ready(self):
+        (self.root / ".sdlc/active/01-stories.md").write_text("HU-01")
+        (self.root / "docs/adr/0001.md").write_text("Estado: Aceptada")
+
+    def test_without_state_nothing_new(self):
+        self.assertEqual(self.run_raw("Bash", command="git commit -m x"), "allow")
+        self.assertEqual(self.edit("app-y/src/a.py"), "allow")
+
+    def test_code_needs_stories_and_adr_by_level(self):
+        self.state()
+        self.assertEqual(self.edit("api-x/src/a.py"), "block")
+        self.ready()
+        self.state(gates=["phase_1_2_stories"])
+        self.assertEqual(self.edit("api-x/src/a.py"), "block")
+        self.state(level=1, gates=["phase_1_2_stories"])
+        self.assertEqual(self.edit("api-x/src/a.py"), "allow")
+        self.state(level=5, gates=["phase_1_2_stories", "phase_3_adr_approved"])
+        self.assertEqual(self.edit("api-x/src/a.py"), "allow")
+
+    def test_new_nested_folder_is_still_gated(self):
+        self.state()
+        self.assertEqual(self.edit("api-x/src/new/deep/m.py"), "block")
+
+    def test_client_without_approved_proposal(self):
+        self.state(project_type="client")
+        self.assertEqual(self.edit("README.md"), "block")
+        self.assertEqual(self.edit(".sdlc/00-idea-brief.md"), "allow")
+        self.assertEqual(self.edit(".sdlc/proposal-a.md"), "allow")
+
+    def test_state_changes_ask(self):
+        self.state(project_type="client")
+        self.assertEqual(self.edit(".sdlc/state.json"), "ask")
+
+    def test_commit_gate(self):
+        self.state()
+        for c in ("git commit -m x", "git -C . push"):
+            with self.subTest(c): self.assertEqual(self.run_raw("Bash", command=c), "block")
+        self.assertEqual(self.run_raw("Bash", command="git status"), "allow")
+        self.state(gates=["phase_4_5_tests_passed"])
+        self.assertEqual(self.run_raw("Bash", command="git commit -m x"), "allow")
+        self.state(gates=["phase_4_5_tests_passed"], pending_doc_sync=True)
+        self.assertEqual(self.run_raw("Bash", command="git commit -m x"), "block")
+
+    def test_freeze_until(self):
+        self.state(freeze_until=iso(hours=2))
+        self.assertEqual(self.run_raw("Bash", command="terraform apply"), "block")
+        self.assertEqual(self.run_raw("Bash", command="ls productos"), "allow")
+        self.state(freeze_until=iso(hours=-2))
+        self.assertEqual(self.run_raw("Bash", command="terraform apply"), "allow")
+
+    def test_invalid_state_asks(self):
+        (self.root / ".sdlc/state.json").write_text("{")
+        self.assertEqual(self.edit("README.md"), "ask")
+
+
 class Robustness(GateTest):
     def test_malformed_freeze_allows(self):
         self.freeze("event_start: garbage\n")

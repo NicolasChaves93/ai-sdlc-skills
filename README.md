@@ -36,13 +36,16 @@ El hook se activa a mano en `~/.claude/settings.json`:
   "hooks": [{"type": "command", "command": "python3 -I $HOME/proyectos/ai-sdlc-skills/hooks/sdlc_gates.py"}]}]}}
 ```
 
+## Incremento por proyecto
+`./setup.sh --init internal|client <proyecto>` crea `.sdlc/` y activa las compuertas del incremento (estas bloquean). Sin `.sdlc/state.json` no se aplican. Son de Claude Code: Gemini no ejecuta el hook.
+
 ## Compuertas del hook
 
-Siempre piden confirmación, nunca bloquean en silencio.
+Estas cuatro piden confirmación.
 
 - Negocio antes que tecnología.
 - ADR aceptado en `docs/adr/` antes del primer código.
-- Niveles en orden, según `.sdlc-state.json`.
+- Niveles en orden, según `.sdlc/state.json` (o `.sdlc-state.json`).
 - Freeze de 24 h, según `.sdlc-freeze`.
 
 Pruebas: `python3 -m unittest hooks/test_sdlc_gates.py`

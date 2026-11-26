@@ -41,7 +41,8 @@ For high-uncertainty assumptions, define a time-boxed PoC (Hypothesis, Minimal E
 Once approved:
 1. If new, create the row in **`Proyectos activos`** (`db: 41ae618d-5d53-8114-84ff-c6242f64b641`) with `Estado = Ideación` and `Fase = 1 Inicio` (and create the `Cliente` first if needed).
 2. Create the Concept Brief / `PT-PP` in **`Documentos`** (`db: 41ae618d-5d53-8108-94d8-ccb73d7034f2`) and any PoC in **`PoCs y decisiones`**.
-3. Prompt the user to transition into **`sdlc-discovery-analysis`** (Phases 1 & 2).
+3. Write `.sdlc/00-idea-brief.md` in the project: title, date, type (`Cliente Externo` | `Proyecto Propio`), complexity 1–5; 1) problem and success criterion; 2) scope: Core (MVP), optional, out of scope; 3) assumptions and risks; 4) preliminary hours/sprints range.
+4. Route by type: external client → **`propuesta-comercial`** (Claude) and wait for the client's approval; own project or approved increment → **`sdlc-discovery-analysis`**.
 
 ## Gotchas
 

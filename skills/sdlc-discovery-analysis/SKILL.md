@@ -51,6 +51,9 @@ Produce technology-agnostic diagrams for **`Documentos`** (`PT-ERS` / `PT-ECU`):
 
 Then decompose into `Épicas` (3–8 stories each), `Historias` (`Como... quiero... para...`, `Módulo`, `MoSCoW`, `Fibonacci`, `Gherkin` + `DoD`), and `Casos de prueba` linked to `Proyecto`, `Historia`, and `Regla`.
 
+### Hand-off file
+Read `.sdlc/00-idea-brief.md` (and the approved proposal option for clients). Write the increment's stories, `BR-XX`, Gherkin scenarios and committed dates to `.sdlc/active/01-stories.md`, with no technology names. The user approves before `phase_1_2_stories` is set.
+
 ### Step 5: Confirm Before Writing to Notion
 Present a summary table of proposed records and write to Notion only after user approval.
 

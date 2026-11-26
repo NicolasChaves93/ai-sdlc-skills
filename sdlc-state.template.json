@@ -1,0 +1,15 @@
+{
+  "increment_id": "INC-001",
+  "project_type": "internal",
+  "level": 2,
+  "current_phase": 1,
+  "pending_doc_sync": false,
+  "freeze_until": null,
+  "gates": {
+    "proposal_approved": false,
+    "phase_0_brief": false,
+    "phase_1_2_stories": false,
+    "phase_3_adr_approved": false,
+    "phase_4_5_tests_passed": false
+  }
+}
