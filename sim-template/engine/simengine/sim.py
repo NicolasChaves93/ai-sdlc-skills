@@ -140,6 +140,13 @@ class Simulation:
         cfg, outs, ev = self.sc.cfg(gid), self.model.outgoing[gid], self.sc.ev
         if self.forced.get(gid) in outs:
             return self.forced[gid]
+        if cfg.get("tipo") == "exitos":                  # repite «flujo» hasta juntar N aciertos de probabilidad «prob»; al salir se reinicia
+            n = counters.get(gid, 0) + (self.rnd.random() < ev(cfg["prob"]))
+            if n < ev(cfg["veces"]):
+                counters[gid] = n
+                return cfg["flujo"]
+            counters[gid] = 0
+            return next(f for f in outs if f != cfg["flujo"])
         counter_gw = cfg.get("tipo") == "contador"
         if not counter_gw and self.mode == "mejor" and cfg.get("caminoMejor"):
             return cfg["caminoMejor"]
